@@ -1,16 +1,19 @@
 import sqlite3
 from datetime import date
 from typing import List, Tuple
+from pathlib import Path
+from .definitions import DB_FILE
+
 
 class DatabaseManager:
-    def __init__(self, db_path: str, institution_type: str):
-        self.conn = sqlite3.connect(db_path)
+    def __init__(self, institution_type: str):
+        self.conn = sqlite3.connect(DB_FILE)
         self.institution_type = institution_type
         self._create_tables()
         
     def _create_tables(self):
-        cursor = self.conn.cursor()
-        cursor.execute('''
+        # Таблица пользователей
+        self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 lastname TEXT NOT NULL,
@@ -24,6 +27,21 @@ class DatabaseManager:
                 birth_date DATE
             )
         ''')
+
+        # Таблица посещаемости
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS attendance (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                date DATE GENERATED ALWAYS AS (DATE(timestamp)) VIRTUAL,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            )
+        ''')
+
+        # Индексы для ускорения выборок
+        self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date)')
+        self.cursor.execute('CREATE INDEX IF NOT EXISTS idx_attendance_user ON attendance(user_id)')
         self.conn.commit()
 
     def add_user(self, user_data: dict):
@@ -93,6 +111,31 @@ class DatabaseManager:
         cursor = self.conn.cursor()
         cursor.execute('DELETE FROM users WHERE id = ?', (user_id,))
         self.conn.commit()
+    
+    def add_attendance_record(self, user_id: int):
+        """Добавление записи о посещении"""
+        self.cursor.execute('''
+            INSERT INTO attendance (user_id) 
+            VALUES (?)
+        ''', (user_id,))
+        self.conn.commit()
+
+    def get_attendance(self, start_date: str, end_date: str) -> list:
+        """Получение посещаемости за период"""
+        self.cursor.execute('''
+            SELECT 
+                a.date,
+                u.lastname,
+                u.firstname,
+                COUNT(a.id) AS visits,
+                GROUP_CONCAT(TIME(a.timestamp), ', ') AS times
+            FROM attendance a
+            JOIN users u ON u.id = a.user_id
+            WHERE a.date BETWEEN ? AND ?
+            GROUP BY a.date, u.id
+            ORDER BY a.date DESC
+        ''', (start_date, end_date))
+        return self.cursor.fetchall()
 
     def __enter__(self):
         return self
