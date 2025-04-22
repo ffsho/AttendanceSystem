@@ -22,7 +22,7 @@ class FaceRecognizer:
         self.known_face_info = []  # (user_id, full_name)
         self.last_detected_user = None
         self.last_detection = False
-        self.frame_skip = 2  # Оптимизация: обработка каждого 3-го кадра
+        self.frame_skip = 1  # Оптимизация: обработка каждого 3-го кадра
         self.frame_counter = 0
         self.load_known_faces()
 
@@ -55,7 +55,6 @@ class FaceRecognizer:
                             print(f"Ошибка загрузки {img_path}: {str(e)}")
         except Exception as e:
             print(f"Ошибка загрузки пользователей: {str(e)}")
-
 
 
     def process_frame(self, frame: np.ndarray) -> np.ndarray:
@@ -94,11 +93,13 @@ class FaceRecognizer:
     def _handle_recognized_user(self, user_id: int):
         """Обработка распознанного пользователя"""
         if self.last_detected_user != user_id:
-            try:
-                self.db.add_attendance_record(user_id)
-                self.last_detected_user = user_id
-            except Exception as e:
-                print(f"Ошибка записи посещения: {str(e)}")
+            # Проверяем, есть ли уже сегодняшняя запись
+            if not self.db.has_attendance_today(user_id):
+                try:
+                    self.db.add_attendance_record(user_id)
+                    self.last_detected_user = user_id
+                except Exception as e:
+                    print(f"Ошибка записи посещения: {str(e)}")
 
     def _draw_face_box(self, frame: np.ndarray, 
                       top: int, right: int, 

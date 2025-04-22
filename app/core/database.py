@@ -150,6 +150,19 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"Error fetching today attendance: {e}")
             return []
+        
+    def has_attendance_today(self, user_id: int) -> bool:
+        """Проверяет, есть ли сегодняшняя запись посещения для пользователя"""
+        try:
+            self.cursor.execute('''
+                SELECT COUNT(*) FROM attendance
+                WHERE user_id = ? AND DATE(timestamp) = DATE(datetime('now', 'localtime'))
+            ''', (user_id,))
+            count = self.cursor.fetchone()[0]
+            return count > 0
+        except sqlite3.Error as e:
+            print(f"Error checking attendance: {e}")
+            return False
 
 
     def get_all_users(self) -> List[Tuple]:

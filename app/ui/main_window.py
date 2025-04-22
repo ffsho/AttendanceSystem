@@ -19,6 +19,8 @@ class MainWindow(QMainWindow):
         self.tracking_active = False
         self.init_ui()
         self.cap = cv2.VideoCapture(0)
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.update_frame)
         
         # Связываем сигналы
         self.update_table_signal.connect(self.update_attendance_table)
@@ -74,30 +76,30 @@ class MainWindow(QMainWindow):
         self.tracking_active = not self.tracking_active
         if self.tracking_active:
             self.tracking_btn.setText("Остановить отслеживание")
-            self.update_frame()
+            self.timer.start(30)  # 30 мс ≈ 33 кадра/сек
         else:
             self.tracking_btn.setText("Начать отслеживание")
+            self.timer.stop()
+            self.video_label.clear()
             self.video_label.setText("Нажмите 'Начать отслеживание' для активации")
 
     def update_frame(self):
         """Обновление кадра с распознаванием лиц"""
         ret, frame = self.cap.read()
-        if ret and self.tracking_active:
+        if ret:
             # Распознавание лиц через FaceRecognizer
             processed_frame = self.face_recognizer.process_frame(frame)
-
             # Обновление таблицы при обнаружении
             if self.face_recognizer.last_detection:
                 self.update_table_signal.emit()
-
             # Конвертация для отображения в Qt
             rgb_image = cv2.cvtColor(processed_frame, cv2.COLOR_BGR2RGB)
             h, w, ch = rgb_image.shape
             bytes_per_line = ch * w
             q_img = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format.Format_RGB888)
             self.video_label.setPixmap(QPixmap.fromImage(q_img).scaled(
-                self.video_label.size(), 
-                Qt.AspectRatioMode.KeepAspectRatio
+                self.video_label.size(),
+                Qt.AspectRatioMode.KeepAspectRatio,
             ))
 
     def update_attendance_table(self):
@@ -109,7 +111,7 @@ class MainWindow(QMainWindow):
             if timestamps:
                 # Удаляем лишние запятые и пробелы
                 timestamps = timestamps.strip(', ')
-                timestamp_list = [ts.strip() for ts in timestamps.split(',') if ts.strip()]  # Убираем пустые значения
+                timestamp_list = [ts.strip() for ts in timestamps.split(',') if ts.strip()]
 
                 if timestamp_list:
                     last_time = max(timestamp_list)
@@ -130,9 +132,9 @@ class MainWindow(QMainWindow):
 
             # Устанавливаем значения в таблице
             self.attendance_table.setItem(row_idx, 0, QTableWidgetItem(fullname))
-            self.attendance_table.setItem(row_idx, 1, QTableWidgetItem(group_name))  # Добавляем название группы
+            self.attendance_table.setItem(row_idx, 1, QTableWidgetItem(group_name))
             self.attendance_table.setItem(row_idx, 2, QTableWidgetItem(time_str))
-            self.attendance_table.setItem(row_idx, 3, QTableWidgetItem(date_str))  # Убедитесь, что у вас есть соответствующая колонка для даты
+            self.attendance_table.setItem(row_idx, 3, QTableWidgetItem(date_str))
 
 
 
@@ -141,4 +143,10 @@ class MainWindow(QMainWindow):
         """Обновление данных после регистрации"""
         self.face_recognizer.load_known_faces()
         self.update_attendance_table()
+
+
+    def closeEvent(self, event):
+        """Освобождение ресурсов при закрытии окна"""
+        self.cap.release()
+        event.accept()
 
