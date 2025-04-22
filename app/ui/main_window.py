@@ -18,10 +18,11 @@ class MainWindow(QMainWindow):
         self.face_recognizer = FaceRecognizer(db)
         self.tracking_active = False
         self.init_ui()
-        self.init_camera()
+        self.cap = cv2.VideoCapture(0)
         
         # Связываем сигналы
         self.update_table_signal.connect(self.update_attendance_table)
+        self.update_attendance_table()
 
     def init_ui(self):
         self.setWindowTitle("Система учета посещаемости")
@@ -61,30 +62,20 @@ class MainWindow(QMainWindow):
         # Правая панель: таблица посещаемости
         self.attendance_table = QTableWidget()
         self.attendance_table.setColumnCount(3)
-        self.attendance_table.setHorizontalHeaderLabels(["ФИО", "Время", "Дата"])
+        self.attendance_table.setHorizontalHeaderLabels(["ФИО", "Группа", "Время", "Дата"])
         self.attendance_table.horizontalHeader().setStretchLastSection(True)
         
         main_layout.addLayout(left_panel, stretch=2)
         main_layout.addWidget(self.attendance_table, stretch=1)
 
-    def init_camera(self):
-        """Инициализация камеры через OpenCV"""
-        self.cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-        
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_frame)
 
     def toggle_tracking(self):
         """Переключение режима отслеживания"""
         self.tracking_active = not self.tracking_active
         if self.tracking_active:
-            self.timer.start(30)
             self.tracking_btn.setText("Остановить отслеживание")
-            self.video_label.setText("Идет обработка видео...")
+            self.update_frame()
         else:
-            self.timer.stop()
             self.tracking_btn.setText("Начать отслеживание")
             self.video_label.setText("Нажмите 'Начать отслеживание' для активации")
 
@@ -94,11 +85,11 @@ class MainWindow(QMainWindow):
         if ret and self.tracking_active:
             # Распознавание лиц через FaceRecognizer
             processed_frame = self.face_recognizer.process_frame(frame)
-            
+
             # Обновление таблицы при обнаружении
             if self.face_recognizer.last_detection:
                 self.update_table_signal.emit()
-            
+
             # Конвертация для отображения в Qt
             rgb_image = cv2.cvtColor(processed_frame, cv2.COLOR_BGR2RGB)
             h, w, ch = rgb_image.shape
@@ -111,36 +102,43 @@ class MainWindow(QMainWindow):
 
     def update_attendance_table(self):
         """Обновление таблицы посещаемости"""
-        today = datetime.now().strftime("%Y-%m-%d")
-        records = self.db.get_attendance(today, today)
-        
+        records = self.db.get_today_attendance()
         self.attendance_table.setRowCount(len(records))
-        for row_idx, (user_id, fullname, timestamps) in enumerate(records):
+
+        for row_idx, (fullname, group_name, timestamps) in enumerate(records):
             if timestamps:
-                last_time = max(timestamps.split(', '))
-                try:
-                    dt = datetime.strptime(last_time, "%Y-%m-%d %H:%M:%S")
-                    date_str = dt.strftime("%d.%m.%Y")
-                    time_str = dt.strftime("%H:%M")
-                except:
+                # Удаляем лишние запятые и пробелы
+                timestamps = timestamps.strip(', ')
+                timestamp_list = [ts.strip() for ts in timestamps.split(',') if ts.strip()]  # Убираем пустые значения
+
+                if timestamp_list:
+                    last_time = max(timestamp_list)
+                    try:
+                        dt = datetime.strptime(last_time, "%Y-%m-%d %H:%M:%S")
+                        date_str = dt.strftime("%d.%m.%Y")
+                        time_str = dt.strftime("%H:%M")
+                    except Exception as e:
+                        print(f"Error parsing timestamp: {e}")
+                        date_str = "N/A"
+                        time_str = "N/A"
+                else:
                     date_str = "N/A"
                     time_str = "N/A"
             else:
                 date_str = "N/A"
                 time_str = "N/A"
-            
+
+            # Устанавливаем значения в таблице
             self.attendance_table.setItem(row_idx, 0, QTableWidgetItem(fullname))
-            self.attendance_table.setItem(row_idx, 1, QTableWidgetItem(time_str))
-            self.attendance_table.setItem(row_idx, 2, QTableWidgetItem(date_str))
-    
+            self.attendance_table.setItem(row_idx, 1, QTableWidgetItem(group_name))  # Добавляем название группы
+            self.attendance_table.setItem(row_idx, 2, QTableWidgetItem(time_str))
+            self.attendance_table.setItem(row_idx, 3, QTableWidgetItem(date_str))  # Убедитесь, что у вас есть соответствующая колонка для даты
+
+
+
+
     def handle_registration_complete(self):
         """Обновление данных после регистрации"""
         self.face_recognizer.load_known_faces()
         self.update_attendance_table()
 
-    def closeEvent(self, event):
-        """Обработка закрытия окна"""
-        if self.cap.isOpened():
-            self.timer.stop()
-            self.cap.release()
-        event.accept()

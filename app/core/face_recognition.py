@@ -8,6 +8,8 @@ from typing import List, Tuple, Optional
 from .definitions import FACES_IMG_DIR
 from .database import DatabaseManager
 
+
+
 class FaceRecognizer:
     def __init__(self, db: DatabaseManager):
         """
@@ -53,6 +55,8 @@ class FaceRecognizer:
                             print(f"Ошибка загрузки {img_path}: {str(e)}")
         except Exception as e:
             print(f"Ошибка загрузки пользователей: {str(e)}")
+
+
 
     def process_frame(self, frame: np.ndarray) -> np.ndarray:
         """Обработка кадра для распознавания лиц"""

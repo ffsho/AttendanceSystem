@@ -82,8 +82,9 @@ class RegistrationWidget(QWidget):
 
         # Захват образцов лица
         if self.capture_face_samples(user_id):
-            self.registration_complete.emit()
             self.clear_form()
+            self.db.add_attendance_record(user_id)
+            self.registration_complete.emit()
             QMessageBox.information(self, "Успех", 
                 "Пользователь успешно зарегистрирован!\nЛицо добавлено в систему.")
         else:

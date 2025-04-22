@@ -16,7 +16,7 @@ class DatabaseManager:
         self._create_tables()
 
     def _create_tables(self):
-        """Создание таблиц с корректной структурой"""
+        """Создание таблиц"""
         try:
             # Таблица пользователей
             self.cursor.execute('''
@@ -34,7 +34,7 @@ class DatabaseManager:
                 )
             ''')
 
-            # Таблица посещаемости с временем в UTC
+
             self.cursor.execute('''
                 CREATE TABLE IF NOT EXISTS attendance (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,22 +59,19 @@ class DatabaseManager:
             print(f"Database error: {e}")
             self.conn.rollback()
 
-    def _get_current_time(self) -> str:
-        """Возвращает текущее время в формате ISO 8601 с часовым поясом"""
-        return datetime.now(TIMEZONE).isoformat()
 
     def add_attendance_record(self, user_id: int):
-        """Добавление записи о посещении с валидацией"""
+        """Добавление записи о посещении с текущим временем в SQL"""
         try:
-            current_time = self._get_current_time()
             self.cursor.execute('''
                 INSERT INTO attendance (user_id, timestamp)
-                VALUES (?, ?)
-            ''', (user_id, current_time))
+                VALUES (?, datetime('now', 'localtime'))
+            ''', (user_id,))
             self.conn.commit()
         except sqlite3.Error as e:
-            print(f"Error adding attendance: {e}")
+            print(f"Error adding attendance record: {e}")
             self.conn.rollback()
+
 
     def add_user(self, user_data: dict) -> int:
         """Добавление нового пользователя с транзакцией"""
@@ -113,6 +110,7 @@ class DatabaseManager:
             self.conn.rollback()
             return -1
 
+
     def get_attendance(self, start_date: str, end_date: str) -> List[Tuple]:
         """Получение посещаемости с преобразованием времени"""
         try:
@@ -135,6 +133,25 @@ class DatabaseManager:
             print(f"Error fetching attendance: {e}")
             return []
 
+
+    def get_today_attendance(self) -> List[Tuple]:
+        try:
+            self.cursor.execute('''
+                SELECT 
+                    u.lastname || ' ' || u.firstname || ' ' || u.patronymic AS full_name, 
+                    u.group_name, 
+                    GROUP_CONCAT(a.timestamp) AS timestamps
+                FROM users u 
+                JOIN attendance a ON u.id = a.user_id
+                WHERE DATE(a.timestamp) = DATE(datetime('now', 'localtime'))
+                GROUP BY u.id;
+            ''')
+            return self.cursor.fetchall()  # Получаем все записи
+        except sqlite3.Error as e:
+            print(f"Error fetching today attendance: {e}")
+            return []
+
+
     def get_all_users(self) -> List[Tuple]:
         """Получение всех пользователей с фильтрацией по типу"""
         try:
@@ -155,8 +172,6 @@ class DatabaseManager:
             print(f"Error fetching users: {e}")
             return []
 
-    def __enter__(self):
-        return self
-
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.conn.close()
+
