@@ -1,19 +1,17 @@
-from app.definitions import DB_FILE, FACES_IMG_DIR
-from app.DataBaseManager import DatabaseManager
-import argparse
-
+from PyQt6.QtWidgets import QApplication
+from app.core.database import DatabaseManager
+from app.ui.main_window import MainWindow
+import sys
 
 def main():
-    # Парсинг аргументов командной строки
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--type", choices=["edu", "ent"], required=True)
-    args = parser.parse_args()
+    app = QApplication(sys.argv)
+    db = DatabaseManager("educational")  # или "enterprise"
+    window = MainWindow(db)
+    db.add_attendance_record(1)
+    window.show()
+    sys.exit(app.exec())
 
-    # Инициализация БД
-    institution_type = "educational" if args.type == "edu" else "enterprise"
-    db = DatabaseManager(institution_type)
-    
-    print(f"Система готова к работе! Тип учреждения: {institution_type}")
+
 
 
 if __name__ == "__main__":
