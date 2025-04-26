@@ -1,13 +1,14 @@
-import datetime
+from datetime import datetime
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, 
                             QPushButton, QTableWidget, QTableWidgetItem, 
                             QLabel, QDateEdit)
 from PyQt6.QtCore import Qt, QDate
+from ..core.database import DatabaseManager
 
 
 
 class StatisticsWidget(QWidget):
-    def __init__(self, db):
+    def __init__(self, db: DatabaseManager):
         super().__init__()
         self.db = db
         self.init_ui()
@@ -61,7 +62,7 @@ class StatisticsWidget(QWidget):
             pass
             
         # Если не дата, ищем по фамилии или группе
-        records = self.db.get_attendance_by_search(search_text)
+        records = self.db.get_attendance_by_search(search_text.lower())
         self.display_results(records)
         
     def load_all_attendance(self):

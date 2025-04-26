@@ -7,6 +7,9 @@ from .definitions import DB_FILE
 
 TIMEZONE = pytz.timezone('Asia/Yekaterinburg')
 
+
+
+
 class DatabaseManager:
     def __init__(self, institution_type: str):
         self.conn = sqlite3.connect(DB_FILE)
@@ -18,21 +21,21 @@ class DatabaseManager:
     def _create_tables(self):
         """Создание таблиц"""
         try:
-            # Таблица пользователей
             self.cursor.execute('''
                 CREATE TABLE IF NOT EXISTS users (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    lastname TEXT NOT NULL,
-                    firstname TEXT NOT NULL,
-                    patronymic TEXT,
+                    lastname TEXT COLLATE NOCASE NOT NULL,
+                    firstname TEXT COLLATE NOCASE NOT NULL,
+                    patronymic TEXT COLLATE NOCASE,
                     user_type TEXT CHECK(user_type IN ('student', 'employee')),
                     faculty TEXT,
-                    group_name TEXT,
+                    group_name TEXT COLLATE NOCASE,
                     position TEXT,
                     hire_date DATE,
                     birth_date DATE
                 )
             ''')
+            # ... остальной код ...
 
 
             self.cursor.execute('''
@@ -119,9 +122,9 @@ class DatabaseManager:
                     u.id,
                     u.lastname || ' ' || u.firstname || COALESCE(' ' || u.patronymic, '') AS fullname,
                     GROUP_CONCAT(
-                        strftime('%d.%m.%Y %H:%M', 
-                        datetime(timestamp, 'localtime')
-                    , '; ') AS times
+                        strftime('%d.%m.%Y %H:%M', datetime(timestamp, 'localtime')),
+                        '; '
+                    ) AS times
                 FROM attendance a
                 JOIN users u ON a.user_id = u.id
                 WHERE date(timestamp) BETWEEN ? AND ?
@@ -140,13 +143,13 @@ class DatabaseManager:
                 SELECT 
                     u.lastname || ' ' || u.firstname || ' ' || u.patronymic AS full_name, 
                     u.group_name, 
-                    GROUP_CONCAT(a.timestamp) AS timestamps
+                    GROUP_CONCAT(a.timestamp, ', ') AS timestamps
                 FROM users u 
                 JOIN attendance a ON u.id = a.user_id
                 WHERE DATE(a.timestamp) = DATE(datetime('now', 'localtime'))
                 GROUP BY u.id;
             ''')
-            return self.cursor.fetchall()  # Получаем все записи
+            return self.cursor.fetchall()
         except sqlite3.Error as e:
             print(f"Error fetching today attendance: {e}")
             return []
@@ -212,7 +215,7 @@ class DatabaseManager:
                     GROUP_CONCAT(
                         strftime('%d.%m.%Y %H:%M',
                         datetime(a.timestamp, 'localtime')
-                    , '; ') AS times
+                    ), '; ') AS times
                 FROM attendance a
                 JOIN users u ON a.user_id = u.id
                 WHERE date(a.timestamp) = ?
@@ -223,30 +226,36 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"Error fetching attendance by date: {e}")
             return []
-    
+
+
     def get_attendance_by_search(self, search_text):
-        """Ищет посещаемость по фамилии или группе"""
+        """Ищет посещаемость по фамилии, имени, отчеству или группе (без учета регистра)"""
         try:
-            search_param = f"%{search_text}%"
+            search_param = f"%{search_text}%"  # Без преобразования в нижний регистр
             self.cursor.execute('''
                 SELECT
                     u.id,
                     u.lastname || ' ' || u.firstname || COALESCE(' ' || u.patronymic, '') AS fullname,
                     GROUP_CONCAT(
-                        strftime('%d.%m.%Y %H:%M',
-                        datetime(a.timestamp, 'localtime')
-                    , '; ') AS times
+                        strftime('%d.%m.%Y %H:%M', datetime(a.timestamp, 'localtime')),
+                        '; '
+                    ) AS times
                 FROM attendance a
                 JOIN users u ON a.user_id = u.id
-                WHERE u.lastname LIKE ? OR u.group_name LIKE ?
+                WHERE 
+                    u.lastname LIKE ? OR 
+                    u.firstname LIKE ? OR
+                    u.patronymic LIKE ? OR
+                    u.group_name LIKE ?
                 GROUP BY u.id
                 ORDER BY a.timestamp DESC
-            ''', (search_param, search_param))
+            ''', (search_param, search_param, search_param, search_param))
             return self.cursor.fetchall()
         except sqlite3.Error as e:
             print(f"Error searching attendance: {e}")
             return []
     
+
     def get_user_group(self, user_id):
         """Возвращает группу пользователя"""
         try:
