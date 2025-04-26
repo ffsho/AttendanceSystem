@@ -74,21 +74,22 @@ class FaceRecognizer:
 
         for face_encoding, (top, right, bottom, left) in zip(face_encodings, face_locations):
             # Поиск совпадений с порогом 0.5
-            matches = face_recognition.compare_faces(
-                self.known_face_encodings, 
-                face_encoding,
-                tolerance=0.5
-            )
+            matches = face_recognition.compare_faces(self.known_face_encodings, face_encoding, tolerance=0.6)
             face_distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
-            
+
             best_match_index = np.argmin(face_distances)
             if matches[best_match_index]:
                 self.last_detection = True
                 user_id, full_name = self.known_face_info[best_match_index]
                 self._handle_recognized_user(user_id)
                 frame = self._draw_face_box(frame, top, right, bottom, left, full_name)
+            else:
+                # Отладка: если нет совпадений
+                print("Лицо не распознано, используйте вопросительные знаки.")
+                frame = self._draw_face_box(frame, top, right, bottom, left, "???")
 
         return frame
+
 
     def _handle_recognized_user(self, user_id: int):
         """Обработка распознанного пользователя"""

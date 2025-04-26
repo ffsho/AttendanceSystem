@@ -7,7 +7,7 @@ def main():
     app = QApplication(sys.argv)
     db = DatabaseManager("educational")  # или "enterprise"
     window = MainWindow(db)
-    db.add_attendance_record(1)
+    db.delete_attendance_record(2)
     window.show()
     sys.exit(app.exec())
 

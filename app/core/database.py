@@ -184,6 +184,22 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"Error fetching users: {e}")
             return []
+        
+    def delete_attendance_record(self, record_id: int):
+        """Удаление записи о посещении по ID"""
+        try:
+            self.cursor.execute('''
+                DELETE FROM attendance 
+                WHERE id = ?
+            ''', (record_id,))
+            if self.cursor.rowcount > 0:
+                self.conn.commit()  # Сохраняем изменения, если запись была удалена
+                print(f"Запись с ID {record_id} успешно удалена.")
+            else:
+                print(f"Запись с ID {record_id} не найдена.")
+        except sqlite3.Error as e:
+            print(f"Ошибка при удалении записи о посещении: {e}")
+            self.conn.rollback()
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.conn.close()
