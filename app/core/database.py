@@ -193,13 +193,71 @@ class DatabaseManager:
                 WHERE id = ?
             ''', (record_id,))
             if self.cursor.rowcount > 0:
-                self.conn.commit()  # Сохраняем изменения, если запись была удалена
+                self.conn.commit()
                 print(f"Запись с ID {record_id} успешно удалена.")
             else:
                 print(f"Запись с ID {record_id} не найдена.")
         except sqlite3.Error as e:
             print(f"Ошибка при удалении записи о посещении: {e}")
             self.conn.rollback()
+
+    
+    def get_attendance_by_date(self, date_str):
+        """Получает посещаемость за конкретную дату"""
+        try:
+            self.cursor.execute('''
+                SELECT
+                    u.id,
+                    u.lastname || ' ' || u.firstname || COALESCE(' ' || u.patronymic, '') AS fullname,
+                    GROUP_CONCAT(
+                        strftime('%d.%m.%Y %H:%M',
+                        datetime(a.timestamp, 'localtime')
+                    , '; ') AS times
+                FROM attendance a
+                JOIN users u ON a.user_id = u.id
+                WHERE date(a.timestamp) = ?
+                GROUP BY u.id
+                ORDER BY a.timestamp DESC
+            ''', (date_str,))
+            return self.cursor.fetchall()
+        except sqlite3.Error as e:
+            print(f"Error fetching attendance by date: {e}")
+            return []
+    
+    def get_attendance_by_search(self, search_text):
+        """Ищет посещаемость по фамилии или группе"""
+        try:
+            search_param = f"%{search_text}%"
+            self.cursor.execute('''
+                SELECT
+                    u.id,
+                    u.lastname || ' ' || u.firstname || COALESCE(' ' || u.patronymic, '') AS fullname,
+                    GROUP_CONCAT(
+                        strftime('%d.%m.%Y %H:%M',
+                        datetime(a.timestamp, 'localtime')
+                    , '; ') AS times
+                FROM attendance a
+                JOIN users u ON a.user_id = u.id
+                WHERE u.lastname LIKE ? OR u.group_name LIKE ?
+                GROUP BY u.id
+                ORDER BY a.timestamp DESC
+            ''', (search_param, search_param))
+            return self.cursor.fetchall()
+        except sqlite3.Error as e:
+            print(f"Error searching attendance: {e}")
+            return []
+    
+    def get_user_group(self, user_id):
+        """Возвращает группу пользователя"""
+        try:
+            self.cursor.execute('''
+                SELECT group_name FROM users WHERE id = ?
+            ''', (user_id,))
+            result = self.cursor.fetchone()
+            return result[0] if result else "N/A"
+        except sqlite3.Error as e:
+            print(f"Error getting user group: {e}")
+            return "N/A"
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.conn.close()

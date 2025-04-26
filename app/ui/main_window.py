@@ -8,6 +8,7 @@ from ..core.face_recognition import FaceRecognizer
 from ..core.database import DatabaseManager
 from datetime import datetime
 from .registration import RegistrationWidget
+from.statistics import StatisticsWidget
 
 class MainWindow(QMainWindow):
     update_table_signal = pyqtSignal()
@@ -42,6 +43,11 @@ class MainWindow(QMainWindow):
         self.registration_tab = RegistrationWidget(self.db, self.face_recognizer)
         self.registration_tab.registration_complete.connect(self.handle_registration_complete)
         self.tabs.addTab(self.registration_tab, "Регистрация")
+
+        # Вкладка "Статистика"
+        self.statistics_tab = StatisticsWidget(self.db)
+        self.tabs.addTab(self.statistics_tab, "Статистика")
+
         # Компоновка главной вкладки
         main_layout = QHBoxLayout(self.main_tab)
         
