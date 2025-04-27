@@ -1,7 +1,6 @@
 from datetime import datetime
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, 
-                            QPushButton, QTableWidget, QTableWidgetItem, 
-                            QLabel, QDateEdit)
+                            QPushButton, QTableWidget, QTableWidgetItem, QHeaderView)
 from PyQt6.QtCore import Qt, QDate
 from ..core.database import DatabaseManager
 
@@ -16,88 +15,96 @@ class StatisticsWidget(QWidget):
     def init_ui(self):
         layout = QVBoxLayout(self)
         
-        # Поисковая строка
+        # Панель управления поиском
         search_layout = QHBoxLayout()
         
+        # Поле ввода
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Поиск по фамилии, группе или дате (ДД.ММ.ГГГГ)")
-        self.search_input.returnPressed.connect(self.search_attendance)
+        self.search_input.setPlaceholderText("Введите ФИО, группу или дату (ДД.ММ.ГГГГ)")
         
-        search_btn = QPushButton("Поиск")
-        search_btn.clicked.connect(self.search_attendance)
+        # Кнопки поиска
+        self.btn_text = QPushButton("Поиск по ФИО/группе")
+        self.btn_date = QPushButton("Поиск по дате")
         
+        # Настройка кнопок
+        self.btn_text.clicked.connect(self.search_by_text)
+        self.btn_date.clicked.connect(self.search_by_date)
+        
+        # Добавление элементов
         search_layout.addWidget(self.search_input)
-        search_layout.addWidget(search_btn)
+        search_layout.addWidget(self.btn_text)
+        search_layout.addWidget(self.btn_date)
         
         # Таблица результатов
         self.results_table = QTableWidget()
         self.results_table.setColumnCount(4)
         self.results_table.setHorizontalHeaderLabels(["ФИО", "Группа", "Дата", "Время"])
-        self.results_table.horizontalHeader().setStretchLastSection(True)
         
-        # Добавляем элементы в основной layout
+        # Настройка ширины столбцов
+        self.results_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.results_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self.results_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        self.results_table.horizontalHeader().setSectionResizeMode(3, QHeaderView.ResizeMode.ResizeToContents)
+        
+        # Компоновка
         layout.addLayout(search_layout)
         layout.addWidget(self.results_table)
         
-        # Загружаем все данные при инициализации
-        self.load_all_attendance()
+        # Загрузка начальных данных
+        self.load_last_30_days()
         
-    def search_attendance(self):
-        """Выполняет поиск по введенному запросу"""
+    def search_by_text(self):
+        """Поиск по ФИО или группе"""
         search_text = self.search_input.text().strip()
-        
         if not search_text:
-            self.load_all_attendance()
+            self.load_last_30_days()
             return
             
-        # Пробуем распарсить дату
-        try:
-            date_obj = QDate.fromString(search_text, "dd.MM.yyyy")
-            if date_obj.isValid():
-                date_str = date_obj.toString("yyyy-MM-dd")
-                records = self.db.get_attendance_by_date(date_str)
-                self.display_results(records)
-                return
-        except:
-            pass
-            
-        # Если не дата, ищем по фамилии или группе
-        records = self.db.get_attendance_by_search(search_text.lower())
+        records = self.db.get_attendance_by_search(search_text)
         self.display_results(records)
         
-    def load_all_attendance(self):
-        """Загружает все записи посещаемости"""
-        # Получаем записи за последние 30 дней
+    def search_by_date(self):
+        """Поиск по дате"""
+        date_input = self.search_input.text().strip()
+        if not date_input:
+            return
+            
+        try:
+            records = self.db.get_attendance_by_date(date_input)
+            self.display_results(records)
+        except ValueError as e:
+            print(f"Ошибка даты: {str(e)}")
+            
+    def load_last_30_days(self):
+        """Загрузка данных за последние 30 дней"""
         end_date = QDate.currentDate().toString("yyyy-MM-dd")
         start_date = QDate.currentDate().addDays(-30).toString("yyyy-MM-dd")
         records = self.db.get_attendance(start_date, end_date)
         self.display_results(records)
         
     def display_results(self, records):
-        """Отображает результаты в таблице"""
-        self.results_table.setRowCount(len(records))
+        """Отображение результатов"""
+        self.results_table.setRowCount(0)
         
-        for row_idx, (user_id, fullname, times) in enumerate(records):
-            # Разбиваем строку с временами на отдельные записи
-            time_entries = [t.strip() for t in times.split(';') if t.strip()]
-            
-            # Для каждой записи создаем отдельную строку в таблице
-            for entry_idx, time_entry in enumerate(time_entries):
-                if entry_idx > 0:
-                    self.results_table.insertRow(row_idx + entry_idx)
+        for user_id, fullname, times in records:
+            for entry in times.split(';'):
+                entry = entry.strip()
+                if not entry:
+                    continue
+                    
+                row = self.results_table.rowCount()
+                self.results_table.insertRow(row)
                 
                 try:
-                    dt = datetime.strptime(time_entry, "%d.%m.%Y %H:%M")
+                    dt = datetime.strptime(entry, "%d.%m.%Y %H:%M")
                     date_str = dt.strftime("%d.%m.%Y")
                     time_str = dt.strftime("%H:%M")
                 except:
-                    date_str = "N/A"
-                    time_str = "N/A"
-                
-                # Получаем группу пользователя (нужно добавить этот метод в DatabaseManager)
+                    date_str = time_str = "N/A"
+                    
                 group = self.db.get_user_group(user_id)
                 
-                self.results_table.setItem(row_idx + entry_idx, 0, QTableWidgetItem(fullname))
-                self.results_table.setItem(row_idx + entry_idx, 1, QTableWidgetItem(group))
-                self.results_table.setItem(row_idx + entry_idx, 2, QTableWidgetItem(date_str))
-                self.results_table.setItem(row_idx + entry_idx, 3, QTableWidgetItem(time_str))
+                self.results_table.setItem(row, 0, QTableWidgetItem(fullname))
+                self.results_table.setItem(row, 1, QTableWidgetItem(group))
+                self.results_table.setItem(row, 2, QTableWidgetItem(date_str))
+                self.results_table.setItem(row, 3, QTableWidgetItem(time_str))

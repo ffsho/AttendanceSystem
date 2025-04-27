@@ -122,7 +122,7 @@ class DatabaseManager:
                     u.id,
                     u.lastname || ' ' || u.firstname || COALESCE(' ' || u.patronymic, '') AS fullname,
                     GROUP_CONCAT(
-                        strftime('%d.%m.%Y %H:%M', datetime(timestamp, 'localtime')),
+                        strftime('%d.%m.%Y %H:%M', datetime(timestamp)),
                         '; '
                     ) AS times
                 FROM attendance a
@@ -205,48 +205,86 @@ class DatabaseManager:
             self.conn.rollback()
 
     
-    def get_attendance_by_date(self, date_str):
-        """Получает посещаемость за конкретную дату"""
+    def get_attendance_by_date(self, date_input: str) -> List[Tuple]:
+        """Ищет посещаемость по частичной дате (день, день.месяц, день.месяц.год)"""
         try:
-            self.cursor.execute('''
+            # Разбиваем введенную дату на части
+            parts = date_input.split(".")
+            day, month, year = None, None, None
+
+            if len(parts) == 1:
+                day = parts[0].zfill(2)  # Добавляем ведущий ноль, если день < 10
+            elif len(parts) == 2:
+                day, month = parts
+                day = day.zfill(2)
+                month = month.zfill(2)
+            elif len(parts) == 3:
+                day, month, year = parts
+                day = day.zfill(2)
+                month = month.zfill(2)
+            else:
+                raise ValueError("Некорректный формат даты")
+
+            # Формируем условия для SQL-запроса
+            conditions = []
+            params = []
+            if day:
+                conditions.append("strftime('%d', a.timestamp) = ?")
+                params.append(day)
+            if month:
+                conditions.append("strftime('%m', a.timestamp) = ?")
+                params.append(month)
+            if year:
+                conditions.append("strftime('%Y', a.timestamp) = ?")
+                params.append(year)
+
+            if not conditions:
+                raise ValueError("Не указана дата")
+
+            # Собираем SQL-запрос
+            query = f'''
                 SELECT
                     u.id,
                     u.lastname || ' ' || u.firstname || COALESCE(' ' || u.patronymic, '') AS fullname,
                     GROUP_CONCAT(
-                        strftime('%d.%m.%Y %H:%M',
-                        datetime(a.timestamp, 'localtime')
-                    ), '; ') AS times
-                FROM attendance a
-                JOIN users u ON a.user_id = u.id
-                WHERE date(a.timestamp) = ?
-                GROUP BY u.id
-                ORDER BY a.timestamp DESC
-            ''', (date_str,))
-            return self.cursor.fetchall()
-        except sqlite3.Error as e:
-            print(f"Error fetching attendance by date: {e}")
-            return []
-
-
-    def get_attendance_by_search(self, search_text):
-        """Ищет посещаемость по фамилии, имени, отчеству или группе (без учета регистра)"""
-        try:
-            search_param = f"%{search_text}%"  # Без преобразования в нижний регистр
-            self.cursor.execute('''
-                SELECT
-                    u.id,
-                    u.lastname || ' ' || u.firstname || COALESCE(' ' || u.patronymic, '') AS fullname,
-                    GROUP_CONCAT(
-                        strftime('%d.%m.%Y %H:%M', datetime(a.timestamp, 'localtime')),
+                        strftime('%d.%m.%Y %H:%M', a.timestamp),
                         '; '
                     ) AS times
                 FROM attendance a
                 JOIN users u ON a.user_id = u.id
+                WHERE {' AND '.join(conditions)}
+                GROUP BY u.id
+                ORDER BY a.timestamp DESC
+            '''
+
+            self.cursor.execute(query, params)
+            return self.cursor.fetchall()
+
+        except ValueError as ve:
+            print(f"Ошибка: {ve}")
+            return []
+        except sqlite3.Error as e:
+            print(f"Ошибка при запросе данных: {e}")
+            return []
+
+
+    def get_attendance_by_search(self, search_text):
+        """Ищет посещаемость по фамилии, имени, отчеству или группе"""
+        try:
+            search_param = f"%{search_text}%"
+            self.cursor.execute('''
+                SELECT
+                    u.id,
+                    u.lastname || ' ' || u.firstname || COALESCE(' ' || u.patronymic, '') AS fullname,
+                    GROUP_CONCAT(
+                        strftime('%d.%m.%Y %H:%M', datetime(a.timestamp)), '; ') AS times
+                FROM attendance a
+                JOIN users u ON a.user_id = u.id
                 WHERE 
-                    u.lastname LIKE ? OR 
-                    u.firstname LIKE ? OR
-                    u.patronymic LIKE ? OR
-                    u.group_name LIKE ?
+                    u.lastname LIKE ? 
+                    OR u.firstname LIKE ?
+                    OR u.patronymic LIKE ?
+                    OR u.group_name LIKE ?
                 GROUP BY u.id
                 ORDER BY a.timestamp DESC
             ''', (search_param, search_param, search_param, search_param))
