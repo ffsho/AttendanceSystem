@@ -166,27 +166,6 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"Error checking attendance: {e}")
             return False
-
-
-    def get_all_users(self) -> List[Tuple]:
-        """Получение всех пользователей с фильтрацией по типу"""
-        try:
-            if self.institution_type == 'educational':
-                self.cursor.execute('''
-                    SELECT id, lastname, firstname, patronymic 
-                    FROM users 
-                    WHERE user_type = 'student'
-                ''')
-            else:
-                self.cursor.execute('''
-                    SELECT id, lastname, firstname, patronymic 
-                    FROM users 
-                    WHERE user_type = 'employee'
-                ''')
-            return self.cursor.fetchall()
-        except sqlite3.Error as e:
-            print(f"Error fetching users: {e}")
-            return []
         
     def delete_attendance_record(self, record_id: int):
         """Удаление записи о посещении по ID"""
@@ -305,6 +284,49 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"Error getting user group: {e}")
             return "N/A"
+        
+
+
+    def get_all_users(self, search_query=None):
+        """Получение всех пользователей с возможностью поиска"""
+        try:
+            if search_query:
+                search_param = f"%{search_query}%"
+                self.cursor.execute('''
+                    SELECT 
+                        id, lastname, firstname, patronymic, user_type,
+                        faculty, group_name, position, hire_date, birth_date
+                    FROM users
+                    WHERE 
+                        lastname LIKE ? OR
+                        firstname LIKE ? OR
+                        patronymic LIKE ? OR
+                        group_name LIKE ?
+                    ORDER BY lastname, firstname
+                ''', (search_param, search_param, search_param, search_param))
+            else:
+                self.cursor.execute('''
+                    SELECT 
+                        id, lastname, firstname, patronymic, user_type,
+                        faculty, group_name, position, hire_date, birth_date
+                    FROM users
+                    ORDER BY lastname, firstname
+                ''')
+            return self.cursor.fetchall()
+        except sqlite3.Error as e:
+            print(f"Error fetching users: {e}")
+            return []
+
+    def delete_user(self, user_id: int) -> bool:
+        """Удаление пользователя по ID"""
+        try:
+            self.cursor.execute('DELETE FROM users WHERE id = ?', (user_id,))
+            self.conn.commit()
+            return self.cursor.rowcount > 0
+        except sqlite3.Error as e:
+            print(f"Error deleting user: {e}")
+            self.conn.rollback()
+            return False
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.conn.close()

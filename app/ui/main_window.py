@@ -8,7 +8,10 @@ from ..core.face_recognition import FaceRecognizer
 from ..core.database import DatabaseManager
 from datetime import datetime
 from .registration import RegistrationWidget
-from.statistics import StatisticsWidget
+from .statistics import StatisticsWidget
+from .system_participants import SystemParticipantsWidget
+
+
 
 class MainWindow(QMainWindow):
     update_table_signal = pyqtSignal()
@@ -47,6 +50,10 @@ class MainWindow(QMainWindow):
         # Вкладка "Статистика"
         self.statistics_tab = StatisticsWidget(self.db)
         self.tabs.addTab(self.statistics_tab, "Статистика")
+
+        # Вкладка "Участники системы"
+        self.users_tab = SystemParticipantsWidget(self.db)
+        self.tabs.addTab(self.users_tab, "Участники системы")
 
         # Компоновка главной вкладки
         main_layout = QHBoxLayout(self.main_tab)
