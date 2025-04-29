@@ -11,12 +11,14 @@ TIMEZONE = pytz.timezone('Asia/Yekaterinburg')
 
 
 class DatabaseManager:
+
     def __init__(self, institution_type: str):
         self.conn = sqlite3.connect(DB_FILE)
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.cursor = self.conn.cursor()
         self.institution_type = institution_type
         self._create_tables()
+
 
     def _create_tables(self):
         """Создание таблиц"""
@@ -35,9 +37,7 @@ class DatabaseManager:
                     birth_date DATE
                 )
             ''')
-            # ... остальной код ...
-
-
+            
             self.cursor.execute('''
                 CREATE TABLE IF NOT EXISTS attendance (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -47,7 +47,6 @@ class DatabaseManager:
                 )
             ''')
 
-            # Оптимизирующие индексы
             self.cursor.execute('''
                 CREATE INDEX IF NOT EXISTS idx_attendance_user 
                 ON attendance(user_id)
@@ -154,6 +153,7 @@ class DatabaseManager:
             print(f"Error fetching today attendance: {e}")
             return []
         
+
     def has_attendance_today(self, user_id: int) -> bool:
         """Проверяет, есть ли сегодняшняя запись посещения для пользователя"""
         try:
@@ -167,6 +167,7 @@ class DatabaseManager:
             print(f"Error checking attendance: {e}")
             return False
         
+
     def delete_attendance_record(self, record_id: int):
         """Удаление записи о посещении по ID"""
         try:
@@ -187,12 +188,11 @@ class DatabaseManager:
     def get_attendance_by_date(self, date_input: str) -> List[Tuple]:
         """Ищет посещаемость по частичной дате (день, день.месяц, день.месяц.год)"""
         try:
-            # Разбиваем введенную дату на части
             parts = date_input.split(".")
             day, month, year = None, None, None
 
             if len(parts) == 1:
-                day = parts[0].zfill(2)  # Добавляем ведущий ноль, если день < 10
+                day = parts[0].zfill(2)
             elif len(parts) == 2:
                 day, month = parts
                 day = day.zfill(2)
@@ -204,7 +204,6 @@ class DatabaseManager:
             else:
                 raise ValueError("Некорректный формат даты")
 
-            # Формируем условия для SQL-запроса
             conditions = []
             params = []
             if day:
@@ -220,7 +219,6 @@ class DatabaseManager:
             if not conditions:
                 raise ValueError("Не указана дата")
 
-            # Собираем SQL-запрос
             query = f'''
                 SELECT
                     u.id,
@@ -295,7 +293,7 @@ class DatabaseManager:
                 self.cursor.execute('''
                     SELECT 
                         id, lastname, firstname, patronymic, user_type,
-                        faculty, group_name, position, hire_date, birth_date
+                        faculty, group_name
                     FROM users
                     WHERE 
                         lastname LIKE ? OR
@@ -308,7 +306,7 @@ class DatabaseManager:
                 self.cursor.execute('''
                     SELECT 
                         id, lastname, firstname, patronymic, user_type,
-                        faculty, group_name, position, hire_date, birth_date
+                        faculty, group_name
                     FROM users
                     ORDER BY lastname, firstname
                 ''')
@@ -316,6 +314,7 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"Error fetching users: {e}")
             return []
+
 
     def delete_user(self, user_id: int) -> bool:
         """Удаление пользователя по ID"""
@@ -328,6 +327,6 @@ class DatabaseManager:
             self.conn.rollback()
             return False
 
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.conn.close()
-

@@ -7,6 +7,7 @@ from ..core.database import DatabaseManager
 
 
 
+
 class SystemParticipantsWidget(QWidget):
     
     def __init__(self, db: DatabaseManager):
@@ -14,6 +15,7 @@ class SystemParticipantsWidget(QWidget):
         self.db = db
         self.init_ui()
         self.load_users()
+
 
     def init_ui(self):
         layout = QVBoxLayout(self)
@@ -37,10 +39,10 @@ class SystemParticipantsWidget(QWidget):
         
         # Таблица пользователей
         self.users_table = QTableWidget()
-        self.users_table.setColumnCount(10)
+        self.users_table.setColumnCount(7)
         self.users_table.setHorizontalHeaderLabels([
             "ID", "Фамилия", "Имя", "Отчество", "Тип", 
-            "Факультет", "Группа", "Должность", "Дата приема", "Дата рождения"
+            "Факультет", "Группа"
         ])
         
         # Настройка таблицы
@@ -50,6 +52,7 @@ class SystemParticipantsWidget(QWidget):
         
         layout.addLayout(control_layout)
         layout.addWidget(self.users_table)
+
 
     def load_users(self, search_query=None):
         try:
@@ -70,9 +73,11 @@ class SystemParticipantsWidget(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Не удалось загрузить пользователей: {str(e)}")
 
+
     def search_users(self):
         query = self.search_input.text().strip()
         self.load_users(query)
+
 
     def delete_selected_user(self):
         selected = self.users_table.selectedItems()

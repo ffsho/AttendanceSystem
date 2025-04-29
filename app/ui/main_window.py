@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QTabWidget, QVBoxLayout, 
                             QHBoxLayout, QLabel, QPushButton, QTableWidget, 
-                            QTableWidgetItem)
+                            QTableWidgetItem, QHeaderView)
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QImage, QPixmap
 import cv2
@@ -10,6 +10,7 @@ from datetime import datetime
 from .registration import RegistrationWidget
 from .statistics import StatisticsWidget
 from .system_participants import SystemParticipantsWidget
+from .export import ExportWidget
 
 
 
@@ -55,6 +56,10 @@ class MainWindow(QMainWindow):
         self.users_tab = SystemParticipantsWidget(self.db)
         self.tabs.addTab(self.users_tab, "Участники системы")
 
+        # Вкладка "Экспорт"
+        self.export_tab = ExportWidget(self.db)
+        self.tabs.addTab(self.export_tab, "Экспорт")
+
         # Компоновка главной вкладки
         main_layout = QHBoxLayout(self.main_tab)
         
@@ -78,7 +83,9 @@ class MainWindow(QMainWindow):
         self.attendance_table = QTableWidget()
         self.attendance_table.setColumnCount(3)
         self.attendance_table.setHorizontalHeaderLabels(["ФИО", "Группа", "Время", "Дата"])
-        self.attendance_table.horizontalHeader().setStretchLastSection(True)
+        self.attendance_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        self.attendance_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
+        self.attendance_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         
         main_layout.addLayout(left_panel, stretch=2)
         main_layout.addWidget(self.attendance_table, stretch=1)

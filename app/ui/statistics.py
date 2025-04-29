@@ -6,12 +6,15 @@ from ..core.database import DatabaseManager
 
 
 
+
 class StatisticsWidget(QWidget):
+
     def __init__(self, db: DatabaseManager):
         super().__init__()
         self.db = db
         self.init_ui()
         
+
     def init_ui(self):
         layout = QVBoxLayout(self)
         
@@ -53,6 +56,7 @@ class StatisticsWidget(QWidget):
         # Загрузка начальных данных
         self.load_last_30_days()
         
+
     def search_by_text(self):
         """Поиск по ФИО или группе"""
         search_text = self.search_input.text().strip()
@@ -63,6 +67,7 @@ class StatisticsWidget(QWidget):
         records = self.db.get_attendance_by_search(search_text)
         self.display_results(records)
         
+
     def search_by_date(self):
         """Поиск по дате"""
         date_input = self.search_input.text().strip()
@@ -75,12 +80,14 @@ class StatisticsWidget(QWidget):
         except ValueError as e:
             print(f"Ошибка даты: {str(e)}")
             
+
     def load_last_30_days(self):
         """Загрузка данных за последние 30 дней"""
         end_date = QDate.currentDate().toString("yyyy-MM-dd")
         start_date = QDate.currentDate().addDays(-30).toString("yyyy-MM-dd")
         records = self.db.get_attendance(start_date, end_date)
         self.display_results(records)
+        
         
     def display_results(self, records):
         """Отображение результатов"""

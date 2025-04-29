@@ -43,19 +43,6 @@ class RegistrationWidget(QWidget):
         # Кнопки
         self.btn_register = QPushButton("Зарегистрировать")
         self.btn_register.clicked.connect(self.start_registration)
-        self.btn_register.setStyleSheet("""
-            QPushButton {
-                background-color: #4CAF50;
-                color: white;
-                padding: 10px;
-                font-size: 14px;
-                border-radius: 5px;
-            }
-            QPushButton:hover {
-                background-color: #45a049;
-            }
-        """)
-
         main_layout.addLayout(self.form)
         main_layout.addWidget(self.btn_register, alignment=Qt.AlignmentFlag.AlignCenter)
 

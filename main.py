@@ -5,13 +5,18 @@ import sys
 
 def main():
     app = QApplication(sys.argv)
-    db = DatabaseManager("educational")  # или "enterprise"
+    db = DatabaseManager("educational")
     window = MainWindow(db)
-    db.delete_attendance_record(2)
+    # load_styles(app)
     window.show()
     sys.exit(app.exec())
 
-
+def load_styles(app: QApplication):
+    try:
+        with open("app/styles/SpyBot.qss", "r", encoding="utf-8") as f:
+            app.setStyleSheet(f.read())
+    except Exception as e:
+        print(f"Ошибка загрузки стилей: {e}")
 
 
 if __name__ == "__main__":
