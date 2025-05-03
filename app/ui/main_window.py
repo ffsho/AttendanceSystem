@@ -15,9 +15,16 @@ from .export import ExportWidget
 
 
 class MainWindow(QMainWindow):
+
     update_table_signal = pyqtSignal()
     
+
     def __init__(self, db: DatabaseManager):
+        """
+        Инициализация главного окна
+        :param db: Объект DatabaseManager для работы с базой данных
+        """
+
         super().__init__()
         self.db = db
         self.face_recognizer = FaceRecognizer(db)
@@ -27,15 +34,17 @@ class MainWindow(QMainWindow):
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
         
-        # Связываем сигналы
+        # Связывание сигналов
         self.update_table_signal.connect(self.update_attendance_table)
         self.update_attendance_table()
 
+
     def init_ui(self):
+
         self.setWindowTitle("Система учета посещаемости")
         self.setGeometry(100, 100, 1200, 600)
         
-        # Создаем виджет вкладок
+        # Виджет вкладок
         self.tabs = QTabWidget()
         self.setCentralWidget(self.tabs)
         
@@ -92,35 +101,44 @@ class MainWindow(QMainWindow):
 
 
     def toggle_tracking(self):
+        """
+        Запуск/остановка режима отслеживание и поиска лиц
+        """
         self.tracking_active = not self.tracking_active
+        
         if self.tracking_active:
-            # Используем новый атрибут known_embeddings
+        
             if not self.face_recognizer.known_embeddings:
                 QMessageBox.warning(self, "Внимание", "Нет зарегистрированных пользователей!")
                 self.tracking_active = False
                 return
-            
-            # Пересоздаем объект камеры при каждом запуске
+
             self.cap = cv2.VideoCapture(0)
+        
             if not self.cap.isOpened():
                 QMessageBox.critical(self, "Ошибка", "Камера недоступна!")
                 self.tracking_active = False
                 return
-            
+
             self.tracking_btn.setText("Остановить отслеживание")
-            self.timer.start(100)  # 100 мс для снижения нагрузки
+            self.timer.start(100)  # 100 мс
+        
         else:
+        
             self.tracking_btn.setText("Начать отслеживание")
             self.timer.stop()
             if self.cap.isOpened():
                 self.cap.release()
             self.video_label.clear()
             self.video_label.setText("Нажмите 'Начать отслеживание' для активации")
-    
+
+
     def update_frame(self):
         """Обновление кадра с распознаванием лиц"""
+
         ret, frame = self.cap.read()
         if ret:
+        
             # Распознавание лиц и получение результатов
             processed_frame, recognized_users = self.face_recognizer.process_frame(frame)
 
@@ -138,28 +156,25 @@ class MainWindow(QMainWindow):
                 Qt.AspectRatioMode.KeepAspectRatio,
             ))
 
+
     def update_attendance_table(self):
-        """Обновление таблицы посещаемости"""
+        """Обновление таблицы посещаемости"""  
         try:
-            # Получаем данные из БД
+            # Получение записей о текущей посещаемости из БД
             records = self.db.get_today_attendance()
 
-            # Устанавливаем правильное количество строк и столбцов
             self.attendance_table.setRowCount(len(records))
-            self.attendance_table.setColumnCount(4)  # Добавлен 4-й столбец
-
-            # Обновляем заголовки
+            self.attendance_table.setColumnCount(4)
             self.attendance_table.setHorizontalHeaderLabels(["ФИО", "Группа", "Время", "Дата"])
 
-            # Обрабатываем каждую запись
+            # Обработка записей
             for row_idx, (fullname, group_name, timestamps) in enumerate(records):
-                # Устанавливаем значения по умолчанию
+                # Значения по умолчанию
                 time_str = "N/A"
                 date_str = "N/A"
-                group = group_name or "N/A"  # Обработка None
+                group = group_name or "N/A"
 
                 if timestamps:
-                    # Очищаем и парсим временные метки
                     clean_timestamps = timestamps.strip(', ')
                     timestamp_list = [ts.strip() for ts in clean_timestamps.split(',') if ts.strip()]
 
@@ -172,7 +187,6 @@ class MainWindow(QMainWindow):
                         except Exception as e:
                             print(f"Ошибка парсинга времени: {e}")
 
-                # Явно создаем элементы таблицы
                 self.attendance_table.setItem(row_idx, 0, QTableWidgetItem(str(fullname)))
                 self.attendance_table.setItem(row_idx, 1, QTableWidgetItem(str(group)))
                 self.attendance_table.setItem(row_idx, 2, QTableWidgetItem(str(time_str)))
@@ -180,9 +194,7 @@ class MainWindow(QMainWindow):
 
         except Exception as e:
             print(f"Ошибка при обновлении таблицы: {e}")
-            # Очищаем таблицу при ошибках
             self.attendance_table.setRowCount(0)
-
 
 
     def handle_registration_complete(self):

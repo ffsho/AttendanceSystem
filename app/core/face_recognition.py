@@ -11,18 +11,18 @@ from .database import DatabaseManager
 
 
 class FaceRecognizer:
+
     def __init__(self, db: DatabaseManager):
         """
-        Инициализация системы распознавания лиц с использованием InsightFace
-        
+        Инициализация класса распознавания лиц с использованием InsightFace
         :param db: Объект DatabaseManager для работы с базой данных
         """
         # Конфигурация
         self.USE_GPU = False
         self.MODEL_NAME = "buffalo_s"
         self.DET_SIZE = (320, 320)
-        self.REC_THRESHOLD = 0.45
-        self.MAX_FACES = 5
+        self.REC_THRESHOLD = 0.5
+        self.MAX_FACES = 15
         self.FRAME_SKIP = 1
         
         self.db = db
@@ -34,6 +34,7 @@ class FaceRecognizer:
         # Инициализация модели
         self._init_model()
         self.load_known_faces()
+
 
     def _init_model(self):
         """Инициализация модели InsightFace"""
@@ -47,6 +48,7 @@ class FaceRecognizer:
             det_size=self.DET_SIZE
         )
 
+
     def load_known_faces(self):
         """Загрузка известных лиц из базы данных"""
         self.known_embeddings = []
@@ -54,10 +56,10 @@ class FaceRecognizer:
 
         users = self.db.get_all_users()
         print(f"Найдено пользователей в БД: {len(users)}")
+
         for user in users:
             user_id = user[0]
             user_folder = FACES_IMG_DIR / str(user_id)
-            print(f"Проверка папки пользователя {user_id}: {user_folder}")
 
             if not user_folder.exists():
                 print(f"Папка {user_folder} не существует!")
@@ -68,6 +70,7 @@ class FaceRecognizer:
                 print(f"Обработка файла: {img_path}")
                 try:
                     img = cv2.imread(str(img_path))
+
                     if img is None:
                         print(f"Ошибка чтения файла: {img_path}")
                         continue
@@ -85,27 +88,30 @@ class FaceRecognizer:
                         'name': self._get_user_name(user),
                         'path': img_path
                     })
-                    print(f"Успешно загружен эмбеддинг для {user_id}")
 
                 except Exception as e:
                     print(f"Ошибка обработки {img_path}: {str(e)}")
 
         print(f"Итого загружено эмбеддингов: {len(self.known_embeddings)}")
 
+
     def _get_user_name(self, user):
+        """
+        Формирование имени пользователя
+        """
+
         # user = (id, lastname, firstname, patronymic, ...)
         lastname = user[1] if user[1] is not None else ""
         firstname = user[2] if user[2] is not None else ""
         patronymic = user[3] if user[3] is not None else ""
         
-        # Уберите лишние пробелы
         full_name = f"{lastname} {firstname} {patronymic}".strip()
         full_name = " ".join(full_name.split())  # Удаление двойных пробелов
+        
         if not full_name:
             print(f"Внимание! Пустое имя для пользователя ID: {user[0]}")
             return "Неизвестный"
         
-        print(f"Сформированное имя: '{full_name}'")  # Логирование
         return full_name
 
     def process_frame(self, frame: np.ndarray) -> Tuple[np.ndarray, list]:
@@ -115,6 +121,7 @@ class FaceRecognizer:
             - Обработанный кадр с визуализацией
             - Список распознанных пользователей
         """
+
         self.frame_counter += 1
         processed_frame = frame.copy()
         recognized = []
@@ -132,13 +139,13 @@ class FaceRecognizer:
             
             # Отрисовка результатов
             color = (0, 255, 0) if similarity >= self.REC_THRESHOLD else (0, 0, 255)
-            label = f"{user_name} ({similarity:.2f})" if similarity >= self.REC_THRESHOLD else "Unknown"
+            label = f"{user_name} ({similarity:.2f})" if similarity >= self.REC_THRESHOLD else "Неизвестный"
             
             cv2.rectangle(processed_frame, 
                          (bbox[0], bbox[1]), 
                          (bbox[2], bbox[3]), 
                          color, 2)
-            print(f"Попытка отрисовки: {label} | Координаты: {bbox}")
+
             cv2.putText(processed_frame, label,
                    (bbox[0], bbox[1]-10),
                    cv2.FONT_HERSHEY_COMPLEX, 0.6, color, 1)
@@ -154,8 +161,10 @@ class FaceRecognizer:
         
         return processed_frame, recognized
 
+
     def _recognize_face(self, embedding: np.ndarray) -> Tuple[float, int, str]:
         """Сравнение с эталонными образцами"""
+
         if not self.known_embeddings:
             return 0.0, -1, ""
 
@@ -168,23 +177,26 @@ class FaceRecognizer:
         best_match_idx = np.argmax(similarities)
         max_similarity = similarities[best_match_idx]
 
-        print(f"Максимальная схожесть: {max_similarity:.2f}")
-
         if max_similarity >= self.REC_THRESHOLD:
+
             user = self.known_users[best_match_idx]
             return max_similarity, user['id'], user['name']
+
         return max_similarity, -1, ""
+
 
     def _handle_recognized_user(self, user_id: int):
         """Обработка распознанного пользователя"""
+
         if self.last_detected_user != user_id:
             if not self.db.has_attendance_today(user_id):
                 try:
                     self.db.add_attendance_record(user_id)
                     self.last_detected_user = user_id
-                    print(f"Зарегистрировано посещение для пользователя {user_id}")
+
                 except Exception as e:
                     print(f"Ошибка записи посещения: {str(e)}")
+
 
     def register_new_user(self, user_id: int, num_samples: int = 10) -> bool:
         """
@@ -193,10 +205,12 @@ class FaceRecognizer:
             True - регистрация успешна
             False - ошибка регистрации
         """
+
         user_folder = FACES_IMG_DIR / str(user_id)
         user_folder.mkdir(parents=True, exist_ok=True)
 
         cap = cv2.VideoCapture(0)
+
         if not cap.isOpened():
             return False
 
@@ -223,10 +237,12 @@ class FaceRecognizer:
                              (bbox[0], bbox[1]), 
                              (bbox[2], bbox[3]), 
                              (0, 255, 0), 2)
+
                 cv2.putText(frame, f"Собрано образцов: {samples}/{num_samples}",
                            (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
             
             cv2.imshow("Регистрация пользователя", frame)
+
             if cv2.waitKey(1) == 27:
                 break
 
@@ -234,6 +250,7 @@ class FaceRecognizer:
         cv2.destroyAllWindows()
         self.load_known_faces()
         return samples >= num_samples
+
 
     def __del__(self):
         """Деструктор для освобождения ресурсов"""

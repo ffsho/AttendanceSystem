@@ -10,6 +10,11 @@ from ..core.database import DatabaseManager
 class StatisticsWidget(QWidget):
 
     def __init__(self, db: DatabaseManager):
+        """
+        Инициализация влкдки "Статистика"
+        :param db: Объект DatabaseManager для работы с базой данных
+        """
+        
         super().__init__()
         self.db = db
         self.init_ui()

@@ -10,6 +10,10 @@ from ..core.database import DatabaseManager
 class SystemParticipantsWidget(QWidget):
     
     def __init__(self, db: DatabaseManager):
+        """
+        Инициализация вкладки "Участники системы"
+        :param db: Объект DatabaseManager для работы с базой данных
+        """
         super().__init__()
         self.db = db
         self.init_ui()
@@ -22,16 +26,18 @@ class SystemParticipantsWidget(QWidget):
         # Панель поиска и управления
         control_layout = QHBoxLayout()
         
+        # Поисковая строка
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Поиск по ФИО или группе...")
         self.search_input.returnPressed.connect(self.search_users)
         
+        # Кнопки
         self.search_btn = QPushButton("Поиск")
         self.search_btn.clicked.connect(self.search_users)
-        
         self.delete_btn = QPushButton("Удалить выделенного")
         self.delete_btn.clicked.connect(self.delete_selected_user)
         
+        # Компоновка
         control_layout.addWidget(self.search_input)
         control_layout.addWidget(self.search_btn)
         control_layout.addWidget(self.delete_btn)
@@ -54,6 +60,7 @@ class SystemParticipantsWidget(QWidget):
 
 
     def load_users(self, search_query=None):
+        """Загрузка пользователей с возможностью поиска"""
         try:
             users = self.db.get_all_users(search_query)
             self.users_table.setRowCount(len(users))
@@ -63,7 +70,6 @@ class SystemParticipantsWidget(QWidget):
                     item = QTableWidgetItem(str(value) if value is not None else "")
                     item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                     
-                    # Для ID сделаем выравнивание по центру
                     if col_idx == 0:
                         item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                     
@@ -74,11 +80,13 @@ class SystemParticipantsWidget(QWidget):
 
 
     def search_users(self):
+        """Поиск пользователей"""
         query = self.search_input.text().strip()
         self.load_users(query)
 
 
     def delete_selected_user(self):
+        """Удаление выделенного пользователя"""
         selected = self.users_table.selectedItems()
         if not selected:
             QMessageBox.warning(self, "Внимание", "Выберите пользователя для удаления!")

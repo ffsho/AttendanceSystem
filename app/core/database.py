@@ -14,6 +14,10 @@ TIMEZONE = pytz.timezone('Asia/Yekaterinburg')
 class DatabaseManager:
 
     def __init__(self, institution_type: str):
+        """
+        Инициализация класса для работы с базой данных с использованием sqlite3
+        :param institution_type=educational или commertial (не поддерживается)
+        """
         self.conn = sqlite3.connect(DB_FILE)
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.cursor = self.conn.cursor()
@@ -138,6 +142,7 @@ class DatabaseManager:
 
 
     def get_today_attendance(self) -> List[Tuple]:
+        """Получение посещаемости за текущий день"""
         try:
             self.cursor.execute('''
                 SELECT 
@@ -156,7 +161,7 @@ class DatabaseManager:
         
 
     def has_attendance_today(self, user_id: int) -> bool:
-        """Проверяет, есть ли сегодняшняя запись посещения для пользователя"""
+        """Проверка, есть ли сегодняшняя запись о посещении для пользователя"""
         try:
             self.cursor.execute('''
                 SELECT COUNT(*) FROM attendance
@@ -187,7 +192,7 @@ class DatabaseManager:
 
     
     def get_attendance_by_date(self, date_input: str) -> List[Tuple]:
-        """Ищет посещаемость по частичной дате (день, день.месяц, день.месяц.год)"""
+        """Поиск записей о посещених по частичной дате (день, день.месяц, день.месяц.год)"""
         try:
             parts = date_input.split(".")
             day, month, year = None, None, None
@@ -242,12 +247,12 @@ class DatabaseManager:
             print(f"Ошибка: {ve}")
             return []
         except sqlite3.Error as e:
-            print(f"Ошибка при запросе данных: {e}")
+            print(f"Ошибка при поиске по дате: {e}")
             return []
 
 
     def get_attendance_by_search(self, search_text):
-        """Ищет посещаемость по фамилии, имени, отчеству или группе"""
+        """Поиск записей о посещених по фамилии, имени, отчеству или группе"""
         try:
             search_param = f"%{search_text}%"
             self.cursor.execute('''
@@ -268,12 +273,12 @@ class DatabaseManager:
             ''', (search_param, search_param, search_param, search_param))
             return self.cursor.fetchall()
         except sqlite3.Error as e:
-            print(f"Error searching attendance: {e}")
+            print(f"Ошибка при поиске: {e}")
             return []
     
 
     def get_user_group(self, user_id):
-        """Возвращает группу пользователя"""
+        """Поиск группы пользователя по id"""
         try:
             self.cursor.execute('''
                 SELECT group_name FROM users WHERE id = ?
@@ -281,10 +286,9 @@ class DatabaseManager:
             result = self.cursor.fetchone()
             return result[0] if result else "N/A"
         except sqlite3.Error as e:
-            print(f"Error getting user group: {e}")
+            print(f"Ошибка при получении группы пользователя: {e}")
             return "N/A"
         
-
 
     def get_all_users(self, search_query=None):
         """Получение всех пользователей с возможностью поиска"""
@@ -313,7 +317,7 @@ class DatabaseManager:
                 ''')
             return self.cursor.fetchall()
         except sqlite3.Error as e:
-            print(f"Error fetching users: {e}")
+            print(f"Ошибка при поиске зарегистрированных пользователей: {e}")
             return []
 
 
@@ -327,14 +331,14 @@ class DatabaseManager:
                 user_folder = FACES_IMG_DIR / str(user_id)
 
                 if user_folder.exists():
-                    shutil.rmtree(user_folder)  # Рекурсивное удаление
+                    shutil.rmtree(user_folder)
                 self.conn.commit()
                 return True
 
             return False
 
         except sqlite3.Error as e:
-            print(f"Error deleting user: {e}")
+            print(f"Ошибка при удалении пользователя: {e}")
             self.conn.rollback()
             return False
 

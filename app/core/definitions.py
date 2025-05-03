@@ -1,15 +1,17 @@
 from pathlib import Path
 import sys
 
+
 # Базовые пути
 try:
     # Определение корневой директории проекта
-    ROOT_DIR = Path(__file__).resolve().parents[2]  # На три уровня выше от core/
+    ROOT_DIR = Path(__file__).resolve().parents[2]
     if not ROOT_DIR.exists():
-        raise FileNotFoundError("Project root directory not found")
+        raise FileNotFoundError("Корневая директория проекта не найдена")
 except Exception as e:
     print(f"FATAL ERROR: {str(e)}")
     sys.exit(1)
+
 
 # Основные директории
 DATA_DIR = ROOT_DIR / "app" / "data"
@@ -21,13 +23,10 @@ ATTENDANCE_REPORTS_DIR = DATA_DIR / "reports"
 FACES_DATA_DIR = DATA_DIR / "faces"
 FACES_IMG_DIR = FACES_DATA_DIR / "images"
 
+
 # Файлы
 DB_FILE = DB_DIR / "attendance.db"
 
-
-# Расширения файлов
-IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
-VIDEO_EXTENSIONS = {".mp4", ".avi", ".mov"}
 
 def verify_paths():
     """Проверка и создание необходимой структуры директорий"""
@@ -43,7 +42,7 @@ def verify_paths():
         try:
             directory.mkdir(parents=True, exist_ok=True)
         except Exception as e:
-            print(f"Cannot create directory {directory}: {str(e)}")
+            print(f"Невозможно создать директорию {directory}: {str(e)}")
             sys.exit(1)
 
 # Выполнение проверок при импорте

@@ -13,10 +13,15 @@ from ..core.database import DatabaseManager
 class ExportWidget(QWidget):
 
     def __init__(self, db: DatabaseManager):
+        """
+        Инициализация вкладки "Экспорт"
+        :param db: Объект DatabaseManager для работы с базой данных 
+        """
         super().__init__()
         self.db = db
         self.init_ui()
         self.check_dependencies()
+
 
     def init_ui(self):
         layout = QVBoxLayout(self)
@@ -58,19 +63,6 @@ class ExportWidget(QWidget):
         layout.addLayout(btn_layout)
         layout.addWidget(self.preview_table)
 
-    def check_dependencies(self):
-        """Проверка наличия необходимых библиотек"""
-        try:
-            import pandas
-            import openpyxl
-        except ImportError:
-            QMessageBox.critical(
-                self, 
-                "Ошибка зависимостей", 
-                "Для работы экспорта установите:\n\n"
-                "pip install pandas openpyxl"
-            )
-            self.export_btn.setEnabled(False)
 
     def load_data(self):
         """Загрузка данных для предпросмотра"""
@@ -90,6 +82,7 @@ class ExportWidget(QWidget):
             QMessageBox.critical(self, "Ошибка БД", f"Ошибка загрузки данных:\n{str(e)}")
         except Exception as e:
             QMessageBox.critical(self, "Ошибка", f"Неизвестная ошибка:\n{str(e)}")
+
 
     def display_preview(self, records):
         """Отображение данных для предпросмотра"""
@@ -118,6 +111,7 @@ class ExportWidget(QWidget):
                 self.preview_table.setItem(row, 1, QTableWidgetItem(group))
                 self.preview_table.setItem(row, 2, QTableWidgetItem(date_str))
                 self.preview_table.setItem(row, 3, QTableWidgetItem(time_str))
+
 
     def export_to_excel(self):
         """Экспорт данных в Excel"""

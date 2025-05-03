@@ -12,11 +12,17 @@ class RegistrationWidget(QWidget):
     registration_complete = pyqtSignal()
 
     def __init__(self, db: DatabaseManager, face_recognizer: FaceRecognizer):
+        """
+        Инициализация вкладки "Регистрация"
+        :param db: Объект DatabaseManager для работы с базой данных
+        """
+
         super().__init__()
         self.db = db
         self.face_recognizer = face_recognizer
         self.current_user_id = None
         self.init_ui()
+
 
     def init_ui(self):
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -82,6 +88,7 @@ class RegistrationWidget(QWidget):
 
     def capture_face_samples(self, user_id: int) -> bool:
         return self.face_recognizer.register_new_user(user_id=user_id, num_samples=10)
+
 
     def clear_form(self):
         """Очистка полей формы"""
