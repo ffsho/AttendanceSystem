@@ -81,7 +81,7 @@ class RegistrationWidget(QWidget):
 
 
     def capture_face_samples(self, user_id: int) -> bool:
-        return self.face_recognizer.register_new_user(user_id=user_id, num_samples=5)
+        return self.face_recognizer.register_new_user(user_id=user_id, num_samples=10)
 
     def clear_form(self):
         """Очистка полей формы"""

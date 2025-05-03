@@ -125,7 +125,7 @@ class ExportWidget(QWidget):
             file_path, _ = QFileDialog.getSaveFileName(
                 self,
                 "Сохранить как",
-                f"Посещаемость_{self.start_date.date().toString('yyyyMMdd')}_{self.end_date.date().toString('yyyyMMdd')}.xlsx",
+                f"Посещаемость_{self.start_date.date().toString('dd-MM-yyyy')}_{self.end_date.date().toString('dd-MM-yyyy')}.xlsx",
                 "Excel Files (*.xlsx)"
             )
             

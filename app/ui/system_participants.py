@@ -1,4 +1,3 @@
-# app/ui/users_tab.py
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, 
                             QPushButton, QTableWidget, QTableWidgetItem,
                             QHeaderView, QMessageBox)
@@ -97,6 +96,7 @@ class SystemParticipantsWidget(QWidget):
             if reply == QMessageBox.StandardButton.Yes:
                 if self.db.delete_user(user_id):
                     self.load_users()
+                    
                     QMessageBox.information(self, "Успех", "Пользователь успешно удален!")
                 else:
                     QMessageBox.critical(self, "Ошибка", "Не удалось удалить пользователя!")

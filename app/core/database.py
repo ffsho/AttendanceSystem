@@ -1,9 +1,10 @@
+import shutil
 import sqlite3
 from datetime import datetime
 from typing import List, Tuple
 from pathlib import Path
 import pytz
-from .definitions import DB_FILE
+from .definitions import DB_FILE, FACES_IMG_DIR
 
 TIMEZONE = pytz.timezone('Asia/Yekaterinburg')
 
@@ -321,7 +322,17 @@ class DatabaseManager:
         try:
             self.cursor.execute('DELETE FROM users WHERE id = ?', (user_id,))
             self.conn.commit()
-            return self.cursor.rowcount > 0
+
+            if self.cursor.rowcount > 0:
+                user_folder = FACES_IMG_DIR / str(user_id)
+
+                if user_folder.exists():
+                    shutil.rmtree(user_folder)  # Рекурсивное удаление
+                self.conn.commit()
+                return True
+
+            return False
+
         except sqlite3.Error as e:
             print(f"Error deleting user: {e}")
             self.conn.rollback()
