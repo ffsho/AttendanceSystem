@@ -20,7 +20,6 @@ class ExportWidget(QWidget):
         super().__init__()
         self.db = db
         self.init_ui()
-        self.check_dependencies()
 
 
     def init_ui(self):
