@@ -1,2 +1,4 @@
-app/data
+/app/data
+test_insightface.py
+ttest.py
 venv/*

@@ -94,16 +94,19 @@ class MainWindow(QMainWindow):
     def toggle_tracking(self):
         self.tracking_active = not self.tracking_active
         if self.tracking_active:
-            if not self.face_recognizer.known_face_encodings:
+            # Используем новый атрибут known_embeddings
+            if not self.face_recognizer.known_embeddings:
                 QMessageBox.warning(self, "Внимание", "Нет зарегистрированных пользователей!")
                 self.tracking_active = False
                 return
+            
             # Пересоздаем объект камеры при каждом запуске
             self.cap = cv2.VideoCapture(0)
             if not self.cap.isOpened():
                 QMessageBox.critical(self, "Ошибка", "Камера недоступна!")
                 self.tracking_active = False
                 return
+            
             self.tracking_btn.setText("Остановить отслеживание")
             self.timer.start(100)  # 100 мс для снижения нагрузки
         else:
@@ -113,16 +116,18 @@ class MainWindow(QMainWindow):
                 self.cap.release()
             self.video_label.clear()
             self.video_label.setText("Нажмите 'Начать отслеживание' для активации")
-
+    
     def update_frame(self):
         """Обновление кадра с распознаванием лиц"""
         ret, frame = self.cap.read()
         if ret:
-            # Распознавание лиц через FaceRecognizer
-            processed_frame = self.face_recognizer.process_frame(frame)
+            # Распознавание лиц и получение результатов
+            processed_frame, recognized_users = self.face_recognizer.process_frame(frame)
+
             # Обновление таблицы при обнаружении
-            if self.face_recognizer.last_detection:
+            if recognized_users:
                 self.update_table_signal.emit()
+
             # Конвертация для отображения в Qt
             rgb_image = cv2.cvtColor(processed_frame, cv2.COLOR_BGR2RGB)
             h, w, ch = rgb_image.shape
@@ -132,11 +137,6 @@ class MainWindow(QMainWindow):
                 self.video_label.size(),
                 Qt.AspectRatioMode.KeepAspectRatio,
             ))
-
-        if self.face_recognizer.last_detection:
-            self.update_table_signal.emit()
-            # Принудительное обновление виджета
-            self.video_label.repaint()
 
     def update_attendance_table(self):
         """Обновление таблицы посещаемости"""
