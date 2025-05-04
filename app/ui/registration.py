@@ -1,9 +1,8 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QLineEdit,
-                            QPushButton, QFormLayout, QMessageBox, QSizePolicy)
+                            QPushButton, QFormLayout, QMessageBox, QSizePolicy, QComboBox)
 from PyQt6.QtCore import Qt, pyqtSignal
 from ..core.face_recognition import FaceRecognizer
 from ..core.database import DatabaseManager
-import cv2
 
 
 
@@ -35,22 +34,34 @@ class RegistrationWidget(QWidget):
             'lastname': QLineEdit(),
             'firstname': QLineEdit(),
             'patronymic': QLineEdit(),
-            'faculty': QLineEdit(),
-            'group': QLineEdit()
+            'faculty': QComboBox(),
+            'group': QComboBox()
         }
 
+        faculties = ["Математический факультет"]
+        groups = ["МТ-101", "МТ-102", "МТ-201", "МТ-202", "МТ-301", "МТ-302", "МТ-401", 
+                  "МП-101", "МП-102", "МП-103", "МП-201", "МП-202", "МП-203", "МП-301", "МП-302", "МП-401", "МП-402", 
+                  "МН-101", "МН-102", "МН-201", "МН-202", "МН-301", "МН-401", 
+                  "МК-101", "МК-102", "МК-201", "МК-202", "МК-301", "МК-302", "МК-401", "МК-402", "МК-501", ]
+        
+        self.inputs['faculty'].addItems(faculties)
+        self.inputs['group'].addItems(groups)
+
         # Добавление полей в форму
-        self.form.addRow("Фамилия:", self.inputs['lastname'])
-        self.form.addRow("Имя:", self.inputs['firstname'])
-        self.form.addRow("Отчество:", self.inputs['patronymic'])
-        self.form.addRow("Факультет:", self.inputs['faculty'])
-        self.form.addRow("Группа:", self.inputs['group'])
+        self.form.addRow(self.inputs['lastname'])
+        self.inputs['lastname'].setPlaceholderText("Фамилия")
+        self.form.addRow(self.inputs['firstname'])
+        self.inputs['firstname'].setPlaceholderText("Имя")
+        self.form.addRow(self.inputs['patronymic'])
+        self.inputs['patronymic'].setPlaceholderText("Отчество")
+        self.form.addRow(self.inputs['faculty'])
+        self.form.addRow(self.inputs['group'])
+    
 
         # Кнопки
         self.btn_register = QPushButton("Зарегистрировать")
         self.btn_register.clicked.connect(self.start_registration)
-        # main_layout.addLayout(self.form)
-        # main_layout.addWidget(self.btn_register, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.btn_register.setObjectName("btn_register")
 
         container = QWidget()
         container.setObjectName("registration_container")
@@ -59,6 +70,10 @@ class RegistrationWidget(QWidget):
         container_layout.addWidget(self.btn_register, alignment=Qt.AlignmentFlag.AlignCenter)
         main_layout.addWidget(container, alignment=Qt.AlignmentFlag.AlignCenter)
 
+        for label in [self.form.itemAt(i).widget() for i in range(self.form.rowCount())]:
+            if isinstance(label, QLabel):
+                label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+
 
     def start_registration(self):
         """Запуск процесса регистрации"""
@@ -66,8 +81,8 @@ class RegistrationWidget(QWidget):
             'lastname': self.inputs['lastname'].text().strip(),
             'firstname': self.inputs['firstname'].text().strip(),
             'patronymic': self.inputs['patronymic'].text().strip(),
-            'faculty': self.inputs['faculty'].text().strip(),
-            'group': self.inputs['group'].text().strip()
+            'faculty': self.inputs['faculty'].currentText().strip(),
+            'group': self.inputs['group'].currentText().strip()
         }
 
         if not all(user_data.values()):
