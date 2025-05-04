@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Tuple
 from pathlib import Path
 import pytz
-from .definitions import DB_FILE, FACES_IMG_DIR
+from .paths import DB_FILE, FACES_IMG_DIR
 
 TIMEZONE = pytz.timezone('Asia/Yekaterinburg')
 

@@ -5,7 +5,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Tuple, Optional
 from insightface.app import FaceAnalysis
-from .definitions import FACES_IMG_DIR
+from .paths import FACES_IMG_DIR
 from .database import DatabaseManager
 
 
