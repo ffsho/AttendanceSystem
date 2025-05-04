@@ -127,8 +127,8 @@ class FaceRecognizer:
         recognized = []
         
         # Пропуск кадров для оптимизации
-        if self.frame_counter % (self.FRAME_SKIP + 1) != 0:
-            return processed_frame, recognized
+        # if self.frame_counter % (self.FRAME_SKIP + 1) != 0:
+        #     return processed_frame, recognized
         
         # Детекция лиц
         faces = self.model.get(frame)

@@ -49,8 +49,15 @@ class RegistrationWidget(QWidget):
         # Кнопки
         self.btn_register = QPushButton("Зарегистрировать")
         self.btn_register.clicked.connect(self.start_registration)
-        main_layout.addLayout(self.form)
-        main_layout.addWidget(self.btn_register, alignment=Qt.AlignmentFlag.AlignCenter)
+        # main_layout.addLayout(self.form)
+        # main_layout.addWidget(self.btn_register, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        container = QWidget()
+        container.setObjectName("registration_container")
+        container_layout = QVBoxLayout(container)
+        container_layout.addLayout(self.form)
+        container_layout.addWidget(self.btn_register, alignment=Qt.AlignmentFlag.AlignCenter)
+        main_layout.addWidget(container, alignment=Qt.AlignmentFlag.AlignCenter)
 
 
     def start_registration(self):

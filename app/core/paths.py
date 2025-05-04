@@ -23,10 +23,11 @@ ATTENDANCE_REPORTS_DIR = DATA_DIR / "reports"
 FACES_DATA_DIR = DATA_DIR / "faces"
 FACES_IMG_DIR = FACES_DATA_DIR / "images"
 
-
 # Файлы
 DB_FILE = DB_DIR / "attendance.db"
 
+# Стили
+STYLES_DIR = ROOT_DIR / "app" / "styles"
 
 def verify_paths():
     """Проверка и создание необходимой структуры директорий"""
