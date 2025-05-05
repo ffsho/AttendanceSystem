@@ -23,8 +23,9 @@ ATTENDANCE_REPORTS_DIR = DATA_DIR / "reports"
 FACES_DATA_DIR = DATA_DIR / "faces"
 FACES_IMG_DIR = FACES_DATA_DIR / "images"
 
-# Файлы
-DB_FILE = DB_DIR / "attendance.db"
+# Базы данных
+DB_EDUCATIONAL = DB_DIR / "educational.db"
+DB_ENTERPRISE = DB_DIR / "enterprise.db"
 
 # Стили
 STYLES_DIR = ROOT_DIR / "app" / "styles"

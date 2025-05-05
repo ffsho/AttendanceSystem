@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Tuple
 from pathlib import Path
 import pytz
-from .paths import DB_FILE, FACES_IMG_DIR
+from .paths import DB_EDUCATIONAL, DB_ENTERPRISE, FACES_IMG_DIR
 
 TIMEZONE = pytz.timezone('Asia/Yekaterinburg')
 
@@ -16,9 +16,9 @@ class DatabaseManager:
     def __init__(self, institution_type: str):
         """
         Инициализация класса для работы с базой данных с использованием sqlite3
-        :param institution_type=educational или commertial (не поддерживается)
+        :param institution_type=educational или enterprise
         """
-        self.conn = sqlite3.connect(DB_FILE)
+        self.conn = sqlite3.connect(DB_EDUCATIONAL)
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.cursor = self.conn.cursor()
         self.institution_type = institution_type

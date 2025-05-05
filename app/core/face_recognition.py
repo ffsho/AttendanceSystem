@@ -12,7 +12,7 @@ from .database import DatabaseManager
 
 class FaceRecognizer:
 
-    def __init__(self, db: DatabaseManager):
+    def __init__(self, db: DatabaseManager, max_faces=1):
         """
         Инициализация класса распознавания лиц с использованием InsightFace
         :param db: Объект DatabaseManager для работы с базой данных
@@ -22,7 +22,7 @@ class FaceRecognizer:
         self.MODEL_NAME = "buffalo_s"
         self.DET_SIZE = (320, 320)
         self.REC_THRESHOLD = 0.5
-        self.MAX_FACES = 15
+        self.max_faces = max_faces
         self.FRAME_SKIP = 1
         
         self.db = db
@@ -34,6 +34,7 @@ class FaceRecognizer:
         # Инициализация модели
         self._init_model()
         self.load_known_faces()
+        print("Создание объекта FaceRecognizer с макс. кол-вом лиц: ", max_faces)
 
 
     def _init_model(self):
@@ -133,7 +134,7 @@ class FaceRecognizer:
         # Детекция лиц
         faces = self.model.get(frame)
         
-        for face in faces[:self.MAX_FACES]:
+        for face in faces[:self.max_faces]:
             bbox = face.bbox.astype(int)
             similarity, user_id, user_name = self._recognize_face(face.embedding)
             
@@ -252,7 +253,3 @@ class FaceRecognizer:
         return samples >= num_samples
 
 
-    def __del__(self):
-        """Деструктор для освобождения ресурсов"""
-        if hasattr(self, 'model'):
-            del self.model
