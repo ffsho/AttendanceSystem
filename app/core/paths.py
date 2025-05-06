@@ -27,6 +27,10 @@ FACES_IMG_DIR = FACES_DATA_DIR / "images"
 DB_EDUCATIONAL = DB_DIR / "educational.db"
 DB_ENTERPRISE = DB_DIR / "enterprise.db"
 
+# Настройки .ini
+SETTINGS_FILE = ROOT_DIR / "app" / "settings" / "settings.ini"
+DEFAULT_SETTINGS_FILE = ROOT_DIR / "app" / "settings" / "default_settings.ini"
+
 # Стили
 STYLES_DIR = ROOT_DIR / "app" / "styles"
 

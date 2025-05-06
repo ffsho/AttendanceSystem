@@ -16,17 +16,74 @@ class DatabaseManager:
     def __init__(self, institution_type: str):
         """
         Инициализация класса для работы с базой данных с использованием sqlite3
-        :param institution_type=educational или enterprise
+        :param institution_type=Educational или Enterprise
         """
-        self.conn = sqlite3.connect(DB_EDUCATIONAL)
+        self.institution_type = institution_type
+        if self.institution_type == 'Educational':
+            self.conn = sqlite3.connect(DB_EDUCATIONAL)
+        
+        elif self.institution_type == 'Enterprise':
+            self.conn = sqlite3.connect(DB_ENTERPRISE)
+
+        else:
+            return "Неправильно задан параметр institution_type"
+
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.cursor = self.conn.cursor()
-        self.institution_type = institution_type
         self._create_tables()
 
 
     def _create_tables(self):
-        """Создание таблиц"""
+        """Создание таблиц с полями, для конкретного учреждения"""
+        if self.institution_type == 'Educational':
+            self._create_tables_educational()
+
+        elif self.institution_type == 'Enterprise':
+            self._create_tables_enterprise()
+
+
+    def _create_tables_enterprise(self):
+        """Создание таблиц для Enterprise"""
+        try:
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    lastname TEXT COLLATE NOCASE NOT NULL,
+                    firstname TEXT COLLATE NOCASE NOT NULL,
+                    patronymic TEXT COLLATE NOCASE,
+                    position TEXT,
+                    hire_date DATE,
+                    birth_date DATE
+                )
+            ''')
+            
+            self.cursor.execute('''
+                CREATE TABLE IF NOT EXISTS attendance (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER NOT NULL,
+                    timestamp TEXT NOT NULL,
+                    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+                )
+            ''')
+
+            self.cursor.execute('''
+                CREATE INDEX IF NOT EXISTS idx_attendance_user 
+                ON attendance(user_id)
+            ''')
+            self.cursor.execute('''
+                CREATE INDEX IF NOT EXISTS idx_attendance_time 
+                ON attendance(timestamp)
+            ''')
+
+            self.conn.commit()
+
+        except sqlite3.Error as e:
+            print(f"Ошибка при создании таблиц [Enterprise]: {e}")
+            self.conn.rollback()
+
+
+    def _create_tables_educational(self):
+        """Создание таблиц для Educational"""
         try:
             self.cursor.execute('''
                 CREATE TABLE IF NOT EXISTS users (
@@ -62,8 +119,9 @@ class DatabaseManager:
             ''')
 
             self.conn.commit()
+
         except sqlite3.Error as e:
-            print(f"Database error: {e}")
+            print(f"Ошибка при создании таблиц [Educational]: {e}")
             self.conn.rollback()
 
 
@@ -75,45 +133,67 @@ class DatabaseManager:
                 VALUES (?, datetime('now', 'localtime'))
             ''', (user_id,))
             self.conn.commit()
+
         except sqlite3.Error as e:
-            print(f"Error adding attendance record: {e}")
+            print(f"Ошибка с добавлением записи о посещении: {e}")
             self.conn.rollback()
 
 
     def add_user(self, user_data: dict) -> int:
-        """Добавление нового пользователя с транзакцией"""
+        """Добавление нового пользователя"""
+        if self.institution_type == 'Educational':
+            return self._add_user_educational(user_data)
+        
+        elif self.institution_type == 'Enterprise':
+            return self._add_user_enterprise(user_data)
+
+
+    def _add_user_enterprise(self, user_data: dict) -> int:
+        """Добавление нового пользователя в Enterprise"""
         try:
-            if self.institution_type == 'educational':
-                self.cursor.execute('''
-                    INSERT INTO users 
-                    (lastname, firstname, patronymic, user_type, faculty, group_name)
-                    VALUES (?, ?, ?, 'student', ?, ?)
-                ''', (
-                    user_data['lastname'],
-                    user_data['firstname'],
-                    user_data.get('patronymic', ''),
-                    user_data['faculty'],
-                    user_data['group']
-                ))
-            else:
-                self.cursor.execute('''
-                    INSERT INTO users 
-                    (lastname, firstname, patronymic, user_type, position, hire_date, birth_date)
-                    VALUES (?, ?, ?, 'employee', ?, ?, ?)
-                ''', (
-                    user_data['lastname'],
-                    user_data['firstname'],
-                    user_data.get('patronymic', ''),
-                    user_data['position'],
-                    user_data['hire_date'],
-                    user_data['birth_date']
-                ))
+            self.cursor.execute('''
+                INSERT INTO users 
+                (lastname, firstname, patronymic, user_type, hire_date, birth_date)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (
+                user_data['lastname'],
+                user_data['firstname'],
+                user_data.get('patronymic', ''),
+                user_data['hire_date'],
+                user_data['birth_date']
+            ))
             
             user_id = self.cursor.lastrowid
             self.conn.commit()
             return user_id
+        
         except sqlite3.Error as e:
-            print(f"Error adding user: {e}")
+            print(f"Ошибка c добавлением нового пользователя в таблицу [Enterprise] {e}")
+            self.conn.rollback()
+            return -1
+
+
+    def _add_user_educational(self, user_data: dict) -> int:
+        """Добавление нового пользователя в Educational"""
+        try:
+            self.cursor.execute('''
+                INSERT INTO users 
+                (lastname, firstname, patronymic, faculty, group_name)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (
+                user_data['lastname'],
+                user_data['firstname'],
+                user_data.get('patronymic', ''),
+                user_data['faculty'],
+                user_data['group']
+            ))
+                    
+            user_id = self.cursor.lastrowid
+            self.conn.commit()
+            return user_id
+        
+        except sqlite3.Error as e:
+            print(f"Ошибка с добавлением нового пользователя в таблицу [Educational]: {e}")
             self.conn.rollback()
             return -1
 
@@ -136,8 +216,9 @@ class DatabaseManager:
                 ORDER BY timestamp DESC
             ''', (start_date, end_date))
             return self.cursor.fetchall()
+        
         except sqlite3.Error as e:
-            print(f"Error fetching attendance: {e}")
+            print(f"Ошибка с полученим посещаемости: {e}")
             return []
 
 
@@ -156,7 +237,7 @@ class DatabaseManager:
             ''')
             return self.cursor.fetchall()
         except sqlite3.Error as e:
-            print(f"Error fetching today attendance: {e}")
+            print(f"Ошибка с полученим посещаемости за текущий день: {e}")
             return []
         
 
@@ -169,8 +250,9 @@ class DatabaseManager:
             ''', (user_id,))
             count = self.cursor.fetchone()[0]
             return count > 0
+        
         except sqlite3.Error as e:
-            print(f"Error checking attendance: {e}")
+            print(f"Ошибка проверки посещаемости пользователя: {e}")
             return False
         
 
@@ -252,7 +334,43 @@ class DatabaseManager:
 
 
     def get_attendance_by_search(self, search_text):
-        """Поиск записей о посещених по фамилии, имени, отчеству или группе"""
+        """Поиск записей о посещених по фамилии, имени, отчеству, группе, позиции"""
+        if self.institution_type == 'Educational':
+            return self._get_attendance_by_search_educational(search_text)
+        
+        elif self.institution_type == 'Enterprise':
+            return self._get_attendance_by_search_enterprise(search_text)
+    
+
+    def _get_attendance_by_search_enterprise(self, search_text):
+        """Поиск записей о посещених по фамилии, имени, отчеству или группе [Enterprise]"""
+        try:
+            search_param = f"%{search_text}%"
+            self.cursor.execute('''
+                SELECT
+                    u.id,
+                    u.lastname || ' ' || u.firstname || COALESCE(' ' || u.patronymic, '') AS fullname,
+                    GROUP_CONCAT(
+                        strftime('%d.%m.%Y %H:%M', datetime(a.timestamp)), '; ') AS times
+                FROM attendance a
+                JOIN users u ON a.user_id = u.id
+                WHERE 
+                    u.lastname LIKE ? 
+                    OR u.firstname LIKE ?
+                    OR u.patronymic LIKE ?
+                    OR u.position LIKE ?
+                GROUP BY u.id
+                ORDER BY a.timestamp DESC
+            ''', (search_param, search_param, search_param, search_param))
+            return self.cursor.fetchall()
+        
+        except sqlite3.Error as e:
+            print(f"Ошибка при поиске [Enterprise]: {e}")
+            return []
+
+
+    def _get_attendance_by_search_educational(self, search_text):
+        """Поиск записей о посещених по фамилии, имени, отчеству или группе [Educational]"""
         try:
             search_param = f"%{search_text}%"
             self.cursor.execute('''
@@ -272,33 +390,59 @@ class DatabaseManager:
                 ORDER BY a.timestamp DESC
             ''', (search_param, search_param, search_param, search_param))
             return self.cursor.fetchall()
+        
         except sqlite3.Error as e:
-            print(f"Ошибка при поиске: {e}")
+            print(f"Ошибка при поиске [Educational]: {e}")
             return []
     
 
-    def get_user_group(self, user_id):
-        """Поиск группы пользователя по id"""
-        try:
-            self.cursor.execute('''
-                SELECT group_name FROM users WHERE id = ?
-            ''', (user_id,))
-            result = self.cursor.fetchone()
-            return result[0] if result else "N/A"
-        except sqlite3.Error as e:
-            print(f"Ошибка при получении группы пользователя: {e}")
-            return "N/A"
-        
-
     def get_all_users(self, search_query=None):
         """Получение всех пользователей с возможностью поиска"""
+        if self.institution_type == 'Educational':
+            return self._get_all_users_educational(search_query)
+        
+        elif self.institution_type == 'Enterprise':
+            return self._get_all_users_enterprise(search_query)
+        
+
+    def _get_all_users_enterprise(self, search_query=None):
+        """Получение всех пользователей с возможностью поиска [Enterprise]"""
         try:
             if search_query:
                 search_param = f"%{search_query}%"
                 self.cursor.execute('''
                     SELECT 
-                        id, lastname, firstname, patronymic, user_type,
-                        faculty, group_name
+                        id, lastname, firstname, patronymic, position, hire_date, birth_date
+                    FROM users
+                    WHERE 
+                        lastname LIKE ? OR
+                        firstname LIKE ? OR
+                        patronymic LIKE ? OR
+                        position LIKE ?
+                    ORDER BY lastname, firstname
+                ''', (search_param, search_param, search_param, search_param))
+            else:
+                self.cursor.execute('''
+                    SELECT 
+                        id, lastname, firstname, patronymic, position, hire_date, birth_date
+                    FROM users
+                    ORDER BY lastname, firstname
+                ''')
+            return self.cursor.fetchall()
+        
+        except sqlite3.Error as e:
+            print(f"Ошибка при поиске зарегистрированных пользователей [Enterprise]: {e}")
+            return []
+
+
+    def _get_all_users_educational(self, search_query=None):
+        """Получение всех пользователей с возможностью поиска [Educational]"""
+        try:
+            if search_query:
+                search_param = f"%{search_query}%"
+                self.cursor.execute('''
+                    SELECT 
+                        id, lastname, firstname, patronymic, faculty, group_name
                     FROM users
                     WHERE 
                         lastname LIKE ? OR
@@ -310,8 +454,7 @@ class DatabaseManager:
             else:
                 self.cursor.execute('''
                     SELECT 
-                        id, lastname, firstname, patronymic, user_type,
-                        faculty, group_name
+                        id, lastname, firstname, patronymic, faculty, group_name
                     FROM users
                     ORDER BY lastname, firstname
                 ''')

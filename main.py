@@ -7,7 +7,7 @@ from app.core.paths import STYLES_DIR
 
 def main():
     app = QApplication(sys.argv)
-    db = DatabaseManager("educational")
+    db = DatabaseManager("Educational")
     window = MainWindow(db)
     load_styles(app)
     window.show()

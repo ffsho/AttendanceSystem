@@ -2,3 +2,4 @@
 test_insightface.py
 ttest.py
 venv/*
+/app/settings/settings.ini

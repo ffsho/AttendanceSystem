@@ -7,22 +7,25 @@ from typing import List, Tuple, Optional
 from insightface.app import FaceAnalysis
 from .paths import FACES_IMG_DIR
 from .database import DatabaseManager
-
+from ..settings.settings import SettingsManager
 
 
 class FaceRecognizer:
 
-    def __init__(self, db: DatabaseManager, max_faces=1):
+    def __init__(self, db: DatabaseManager, settings_manager: SettingsManager):
         """
         Инициализация класса распознавания лиц с использованием InsightFace
         :param db: Объект DatabaseManager для работы с базой данных
         """
+        self.settings_manager = SettingsManager()
+        self.settings_manager.load_settings()
+
         # Конфигурация
         self.USE_GPU = False
         self.MODEL_NAME = "buffalo_s"
         self.DET_SIZE = (320, 320)
         self.REC_THRESHOLD = 0.5
-        self.max_faces = max_faces
+        self.max_faces = int(self.settings_manager.get_setting('max_faces'))
         self.FRAME_SKIP = 1
         
         self.db = db
@@ -34,7 +37,7 @@ class FaceRecognizer:
         # Инициализация модели
         self._init_model()
         self.load_known_faces()
-        print("Создание объекта FaceRecognizer с макс. кол-вом лиц: ", max_faces)
+        print("Создание объекта FaceRecognizer с макс. кол-вом лиц:", self.max_faces)
 
 
     def _init_model(self):

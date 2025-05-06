@@ -12,6 +12,7 @@ from .statistics import StatisticsWidget
 from .system_participants import SystemParticipantsWidget
 from .export import ExportWidget
 from .settings import SettingsDialog
+from ..settings.settings import SettingsManager
 
 
 class MainWindow(QMainWindow):
@@ -31,8 +32,9 @@ class MainWindow(QMainWindow):
         self.cap = cv2.VideoCapture(0)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
-        self.max_faces = 1
-        self.face_recognizer = FaceRecognizer(db)
+        self.settings_manager = SettingsManager()
+        self.settings_manager.load_settings()
+        self.face_recognizer = FaceRecognizer(db, self.settings_manager)
         self.init_ui()
 
         # Связывание сигналов
@@ -41,13 +43,15 @@ class MainWindow(QMainWindow):
 
 
     def init_ui(self):
-
+        # Настройки окна
         self.setWindowTitle("Система учета посещаемости")
         self.setGeometry(100, 100, 1200, 600)
 
+        # Меню
         menu_bar = QMenuBar(self)
         self.setMenuBar(menu_bar)
 
+        # 'Настройки'
         settings = QAction("Настройки", self)
         menu_bar.addAction(settings)
         settings.triggered.connect(self.open_settings)
@@ -216,7 +220,7 @@ class MainWindow(QMainWindow):
 
     def open_settings(self):
         """Открытие настроек"""
-        settings_dialog = SettingsDialog(self)
+        settings_dialog = SettingsDialog(self.settings_manager, parent=self)
         settings_dialog.settings_updated.connect(self.update_settings) 
         settings_dialog.exec()
     
@@ -224,11 +228,9 @@ class MainWindow(QMainWindow):
     def update_settings(self, new_settings):
         """Обработчик обновленных настроек"""
         print("Обновленные настройки:", new_settings)
-        new_max_faces = new_settings['max_faces']
         
-        if new_max_faces != self.max_faces:
-            self.max_faces = new_max_faces
-            self.recreate_face_recognizer()
+        self.max_faces = new_settings['max_faces']
+        self.recreate_face_recognizer()
 
 
     def recreate_face_recognizer(self):
@@ -236,7 +238,7 @@ class MainWindow(QMainWindow):
         if hasattr(self, "face_recognizer"):
             del self.face_recognizer
 
-        self.face_recognizer = FaceRecognizer(self.db, max_faces=self.max_faces)
+        self.face_recognizer = FaceRecognizer(self.db, self.settings_manager)
         self.face_recognizer.load_known_faces()
 
 
