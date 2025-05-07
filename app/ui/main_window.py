@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QTabWidget, QVBoxLayout, 
                             QHBoxLayout, QLabel, QPushButton, QTableWidget, 
-                            QTableWidgetItem, QHeaderView, QMessageBox, QMenuBar, QMenu)
+                            QTableWidgetItem, QHeaderView, QMessageBox, QMenuBar, QApplication)
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QImage, QPixmap, QAction, QIcon
 import cv2
@@ -13,6 +13,8 @@ from .system_participants import SystemParticipantsWidget
 from .export import ExportWidget
 from .settings import SettingsDialog
 from ..settings.settings import SettingsManager
+EXIT_CODE_REBOOT = 1001
+
 
 
 class MainWindow(QMainWindow):
@@ -20,21 +22,23 @@ class MainWindow(QMainWindow):
     update_table_signal = pyqtSignal()
     
 
-    def __init__(self, db: DatabaseManager):
+    def __init__(self, settings_manager: SettingsManager):
         """
         Инициализация главного окна
         :param db: Объект DatabaseManager для работы с базой данных
         """
 
         super().__init__()
-        self.db = db
+        self.settings_manager = settings_manager
+        self.settings_manager.load_settings()
+        self.institution_type = settings_manager.get_setting('institution')
+        self.db = DatabaseManager(settings_manager.get_setting('institution'))
+        self.restart_required = False
         self.tracking_active = False
         self.cap = cv2.VideoCapture(0)
         self.timer = QTimer(self)
         self.timer.timeout.connect(self.update_frame)
-        self.settings_manager = SettingsManager()
-        self.settings_manager.load_settings()
-        self.face_recognizer = FaceRecognizer(db, self.settings_manager)
+        self.face_recognizer = FaceRecognizer(self.db, self.settings_manager)
         self.init_ui()
 
         # Связывание сигналов
@@ -103,7 +107,12 @@ class MainWindow(QMainWindow):
         # Правая панель: таблица посещаемости
         self.attendance_table = QTableWidget()
         self.attendance_table.setColumnCount(3)
-        self.attendance_table.setHorizontalHeaderLabels(["ФИО", "Группа", "Время/Дата"])
+        
+        if self.institution_type == 'Educational':
+            self.attendance_table.setHorizontalHeaderLabels(["ФИО", "Группа", "Время/Дата"])
+        elif self.institution_type == 'Enterprise':
+            self.attendance_table.setHorizontalHeaderLabels(["ФИО", "Должность", "Время/Дата"])
+
         self.attendance_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         self.attendance_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.ResizeToContents)
         self.attendance_table.horizontalHeader().setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
@@ -177,14 +186,20 @@ class MainWindow(QMainWindow):
 
             self.attendance_table.setRowCount(len(records))
             self.attendance_table.setColumnCount(4)
-            self.attendance_table.setHorizontalHeaderLabels(["ФИО", "Группа", "Время", "Дата"])
+
+
+            if self.institution_type == 'Educational':
+                self.attendance_table.setHorizontalHeaderLabels(["ФИО", "Группа", "Время", "Дата"])
+            elif self.institution_type == 'Enterprise':
+                self.attendance_table.setHorizontalHeaderLabels(["ФИО", "Должность", "Время", "Дата"])
+
 
             # Обработка записей
-            for row_idx, (fullname, group_name, timestamps) in enumerate(records):
+            for row_idx, (fullname, group_position, timestamps) in enumerate(records):
                 # Значения по умолчанию
                 time_str = "N/A"
                 date_str = "N/A"
-                group = group_name or "N/A"
+                group = group_position or "N/A"
 
                 if timestamps:
                     clean_timestamps = timestamps.strip(', ')
@@ -230,7 +245,21 @@ class MainWindow(QMainWindow):
         print("Обновленные настройки:", new_settings)
         
         self.max_faces = new_settings['max_faces']
+        if self.institution_type != new_settings['institution']:
+            self.institution_type = new_settings['institution']
+            self.recreate_db()
+            self.restart_required = True
+            self.close()
+            
         self.recreate_face_recognizer()
+
+
+    def recreate_db(self):
+        """Пересоздание объекта DatabaseManager с обновленными настройками"""
+        if hasattr(self, "db"):
+            del self.db
+        
+        self.db = DatabaseManager(self.settings_manager.get_setting('institution'))
 
 
     def recreate_face_recognizer(self):
@@ -242,8 +271,18 @@ class MainWindow(QMainWindow):
         self.face_recognizer.load_known_faces()
 
 
+    def restart_application(self):
+        """Полный перезапуск приложения"""
+        QApplication.instance().exit(EXIT_CODE_REBOOT)
+
+
     def closeEvent(self, event):
-        """Освобождение ресурсов при закрытии окна"""
+        """Обработчик закрытия окна"""
         if self.cap.isOpened():
             self.cap.release()
+
+        # Для перезапуска
+        if self.restart_required:
+            QApplication.exit(EXIT_CODE_REBOOT)
+        
         event.accept()

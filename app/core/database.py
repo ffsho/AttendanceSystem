@@ -26,7 +26,7 @@ class DatabaseManager:
             self.conn = sqlite3.connect(DB_ENTERPRISE)
 
         else:
-            return "Неправильно задан параметр institution_type"
+            raise ValueError("Недопустимый тип учреждения. Допустимые значения: 'Educational', 'Enterprise'")
 
         self.conn.execute("PRAGMA foreign_keys = ON")
         self.cursor = self.conn.cursor()
@@ -91,12 +91,8 @@ class DatabaseManager:
                     lastname TEXT COLLATE NOCASE NOT NULL,
                     firstname TEXT COLLATE NOCASE NOT NULL,
                     patronymic TEXT COLLATE NOCASE,
-                    user_type TEXT CHECK(user_type IN ('student', 'employee')),
                     faculty TEXT,
-                    group_name TEXT COLLATE NOCASE,
-                    position TEXT,
-                    hire_date DATE,
-                    birth_date DATE
+                    group_name TEXT COLLATE NOCASE
                 )
             ''')
             
@@ -153,12 +149,13 @@ class DatabaseManager:
         try:
             self.cursor.execute('''
                 INSERT INTO users 
-                (lastname, firstname, patronymic, user_type, hire_date, birth_date)
+                (lastname, firstname, patronymic, position, hire_date, birth_date)
                 VALUES (?, ?, ?, ?, ?, ?)
             ''', (
                 user_data['lastname'],
                 user_data['firstname'],
                 user_data.get('patronymic', ''),
+                user_data['position'],
                 user_data['hire_date'],
                 user_data['birth_date']
             ))
@@ -224,6 +221,34 @@ class DatabaseManager:
 
     def get_today_attendance(self) -> List[Tuple]:
         """Получение посещаемости за текущий день"""
+        if self.institution_type == 'Educational':
+            return self._get_today_attendance_educational()
+        
+        elif self.institution_type == 'Enterprise':
+            return self._get_today_attendance_enterprise()
+
+
+    def _get_today_attendance_enterprise(self) -> List[Tuple]:
+        """Получение посещаемости за текущий день [Enterprise]"""
+        try:
+            self.cursor.execute('''
+                SELECT 
+                    u.lastname || ' ' || u.firstname || ' ' || u.patronymic AS full_name, u.position, 
+                    GROUP_CONCAT(a.timestamp, ', ') AS timestamps
+                FROM users u 
+                JOIN attendance a ON u.id = a.user_id
+                WHERE DATE(a.timestamp) = DATE(datetime('now', 'localtime'))
+                GROUP BY u.id;
+            ''')
+            return self.cursor.fetchall()
+        
+        except sqlite3.Error as e:
+            print(f"Ошибка с полученим посещаемости за текущий день [Enterprise]: {e}")
+            return []
+
+
+    def _get_today_attendance_educational(self) -> List[Tuple]:
+        """Получение посещаемости за текущий день [Educational]"""
         try:
             self.cursor.execute('''
                 SELECT 
@@ -237,7 +262,7 @@ class DatabaseManager:
             ''')
             return self.cursor.fetchall()
         except sqlite3.Error as e:
-            print(f"Ошибка с полученим посещаемости за текущий день: {e}")
+            print(f"Ошибка с полученим посещаемости за текущий день [Educational]: {e}")
             return []
         
 
@@ -462,6 +487,34 @@ class DatabaseManager:
         except sqlite3.Error as e:
             print(f"Ошибка при поиске зарегистрированных пользователей: {e}")
             return []
+        
+        
+    def get_user_position(self, user_id):
+        """Поиск должности сотрудника по id"""
+        try:
+            self.cursor.execute('''
+                SELECT position FROM users WHERE id = ?
+            ''', (user_id,))
+            result = self.cursor.fetchone()
+            return result[0] if result else "N/A"
+        
+        except sqlite3.Error as e:
+            print(f"Ошибка при получении должности сотрудника: {e}")
+            return "N/A"
+
+
+    def get_user_group(self, user_id):
+        """Поиск группы пользователя по id"""
+        try:
+            self.cursor.execute('''
+                SELECT group_name FROM users WHERE id = ?
+            ''', (user_id,))
+            result = self.cursor.fetchone()
+            return result[0] if result else "N/A"
+        
+        except sqlite3.Error as e:
+            print(f"Ошибка при получении группы пользователя: {e}")
+            return "N/A"
 
 
     def delete_user(self, user_id: int) -> bool:

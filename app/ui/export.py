@@ -19,6 +19,7 @@ class ExportWidget(QWidget):
         """
         super().__init__()
         self.db = db
+        self.institution_type = db.institution_type
         self.init_ui()
 
 
@@ -53,8 +54,14 @@ class ExportWidget(QWidget):
         
         # Таблица для предпросмотра
         self.preview_table = QTableWidget()
-        self.preview_table.setColumnCount(4)
-        self.preview_table.setHorizontalHeaderLabels(["ФИО", "Группа", "Дата", "Время"])
+
+        if self.institution_type == 'Educational':
+            self.preview_table.setColumnCount(4)
+            self.preview_table.setHorizontalHeaderLabels(["ФИО", "Группа", "Дата", "Время"])
+        elif self.institution_type == 'Enterprise':
+            self.preview_table.setColumnCount(4)
+            self.preview_table.setHorizontalHeaderLabels(["ФИО", "Должность", "Дата", "Время"])
+
         self.preview_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
         
         # Компоновка
@@ -104,10 +111,13 @@ class ExportWidget(QWidget):
                     date_str = "Ошибка даты"
                     time_str = "Ошибка времени"
                 
-                group = self.db.get_user_group(user_id) or "N/A"
-                
                 self.preview_table.setItem(row, 0, QTableWidgetItem(fullname))
-                self.preview_table.setItem(row, 1, QTableWidgetItem(group))
+                if self.institution_type == 'Educational':
+                    group = self.db.get_user_group(user_id) or "N/A"
+                    self.preview_table.setItem(row, 1, QTableWidgetItem(group))
+                elif self.institution_type == 'Enterprise':
+                    position = self.db.get_user_position(user_id) or "N/A"
+                    self.preview_table.setItem(row, 1, QTableWidgetItem(position))
                 self.preview_table.setItem(row, 2, QTableWidgetItem(date_str))
                 self.preview_table.setItem(row, 3, QTableWidgetItem(time_str))
 
@@ -132,18 +142,31 @@ class ExportWidget(QWidget):
             # Формирование DataFrame
             data = []
             for user_id, fullname, times in records:
-                group = self.db.get_user_group(user_id) or "N/A"
+
+                if self.institution_type == 'Educational':
+                    group = self.db.get_user_group(user_id) or "N/A"
+                elif self.institution_type == 'Enterprise':
+                    position = self.db.get_user_position(user_id) or "N/A"
+
                 for entry in times.split(';'):
                     entry = entry.strip()
                     if entry:
                         try:
                             dt = datetime.strptime(entry, "%d.%m.%Y %H:%M")
-                            data.append({
-                                "ФИО": fullname,
-                                "Группа": group,
-                                "Дата": dt.strftime("%d.%m.%Y"),
-                                "Время": dt.strftime("%H:%M")
-                            })
+                            if self.institution_type == 'Educational':
+                                data.append({
+                                    "ФИО": fullname,
+                                    "Группа": group,
+                                    "Дата": dt.strftime("%d.%m.%Y"),
+                                    "Время": dt.strftime("%H:%M")
+                                })
+                            elif self.institution_type == 'Enterprise':
+                                data.append({
+                                    "ФИО": fullname,
+                                    "Должность": position,
+                                    "Дата": dt.strftime("%d.%m.%Y"),
+                                    "Время": dt.strftime("%H:%M")
+                                })
                         except ValueError:
                             continue
             

@@ -4,14 +4,26 @@ from app.core.database import DatabaseManager
 from app.ui.main_window import MainWindow
 import sys
 from app.core.paths import STYLES_DIR
+from app.settings.settings import SettingsManager
+
 
 def main():
+
+    EXIT_CODE_REBOOT = 1001
     app = QApplication(sys.argv)
-    db = DatabaseManager("Educational")
-    window = MainWindow(db)
-    load_styles(app)
-    window.show()
-    sys.exit(app.exec())
+
+    while True:    
+        settings_manager = SettingsManager()
+        window = MainWindow(settings_manager)
+        load_styles(app)
+        window.show()
+
+        exit_code = app.exec()
+        if exit_code != EXIT_CODE_REBOOT:
+            break
+
+    sys.exit(exit_code)
+
 
 def load_styles(app: QApplication):
     try:

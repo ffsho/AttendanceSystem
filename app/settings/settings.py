@@ -48,5 +48,5 @@ class SettingsManager:
                 if not self.config.has_section('Settings'):
                     self.config.add_section('Settings')
                     self.config.set('Settings', 'max_faces', '10')
-                    self.config.set('Settings', 'institution', 'educational')
+                    self.config.set('Settings', 'institution', 'Educational')
                     self.config.write(file)

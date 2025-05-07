@@ -17,6 +17,7 @@ class StatisticsWidget(QWidget):
         
         super().__init__()
         self.db = db
+        self.institution_type = db.institution_type
         self.init_ui()
         
 
@@ -26,13 +27,22 @@ class StatisticsWidget(QWidget):
         # Панель управления поиском
         search_layout = QHBoxLayout()
         
-        # Поле ввода
-        self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Введите ФИО, группу или дату (ДД.ММ.ГГГГ)")
-        
-        # Кнопки поиска
-        self.btn_text = QPushButton("Поиск по ФИО/группе")
-        self.btn_date = QPushButton("Поиск по дате")
+        if self.institution_type == 'Educational':
+            # Поле ввода
+            self.search_input = QLineEdit()
+            self.search_input.setPlaceholderText("Введите ФИО, группу или дату (ДД.ММ.ГГГГ)")
+            # Кнопки поиска
+            self.btn_text = QPushButton("Поиск по ФИО/группе")
+            self.btn_date = QPushButton("Поиск по дате")
+
+        elif self.institution_type == 'Enterprise':
+            # Поле ввода
+            self.search_input = QLineEdit()
+            self.search_input.setPlaceholderText("Введите ФИО, должности или дату (ДД.ММ.ГГГГ)")
+            # Кнопки поиска
+            self.btn_text = QPushButton("Поиск по ФИО/должности")
+            self.btn_date = QPushButton("Поиск по дате")
+
         
         # Настройка кнопок
         self.btn_text.clicked.connect(self.search_by_text)
@@ -46,7 +56,11 @@ class StatisticsWidget(QWidget):
         # Таблица результатов
         self.results_table = QTableWidget()
         self.results_table.setColumnCount(4)
-        self.results_table.setHorizontalHeaderLabels(["ФИО", "Группа", "Дата", "Время"])
+
+        if self.institution_type == 'Educational':
+            self.results_table.setHorizontalHeaderLabels(["ФИО", "Группа", "Дата", "Время"])
+        elif self.institution_type == 'Enterprise':
+            self.results_table.setHorizontalHeaderLabels(["ФИО", "Должность", "Дата", "Время"])
         
         # Настройка ширины столбцов
         self.results_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
@@ -113,10 +127,14 @@ class StatisticsWidget(QWidget):
                     time_str = dt.strftime("%H:%M")
                 except:
                     date_str = time_str = "N/A"
-                    
-                group = self.db.get_user_group(user_id)
                 
+                # Таблица
                 self.results_table.setItem(row, 0, QTableWidgetItem(fullname))
-                self.results_table.setItem(row, 1, QTableWidgetItem(group))
+                if self.institution_type == 'Educational':
+                    group = self.db.get_user_group(user_id)
+                    self.results_table.setItem(row, 1, QTableWidgetItem(group))
+                elif self.institution_type == 'Enterprise':
+                    position = self.db.get_user_position(user_id)
+                    self.results_table.setItem(row, 1, QTableWidgetItem(position))
                 self.results_table.setItem(row, 2, QTableWidgetItem(date_str))
                 self.results_table.setItem(row, 3, QTableWidgetItem(time_str))

@@ -16,6 +16,7 @@ class SystemParticipantsWidget(QWidget):
         """
         super().__init__()
         self.db = db
+        self.institution_type = db.institution_type
         self.init_ui()
         self.load_users()
 
@@ -28,7 +29,10 @@ class SystemParticipantsWidget(QWidget):
         
         # Поисковая строка
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText("Поиск по ФИО или группе...")
+        if self.institution_type == 'Educational':
+            self.search_input.setPlaceholderText("Поиск по ФИО или группе...")
+        elif self.institution_type == 'Enterprise':
+            self.search_input.setPlaceholderText("Поиск по ФИО или должности...")
         self.search_input.returnPressed.connect(self.search_users)
         
         # Кнопки
@@ -44,11 +48,17 @@ class SystemParticipantsWidget(QWidget):
         
         # Таблица пользователей
         self.users_table = QTableWidget()
-        self.users_table.setColumnCount(7)
-        self.users_table.setHorizontalHeaderLabels([
-            "ID", "Фамилия", "Имя", "Отчество", "Тип", 
-            "Факультет", "Группа"
-        ])
+
+        if self.institution_type == 'Educational':
+            self.users_table.setColumnCount(6)
+            self.users_table.setHorizontalHeaderLabels([
+                "ID", "Фамилия", "Имя", "Отчество", "Факультет", "Группа"
+            ])
+        elif self.institution_type == 'Enterprise':
+            self.users_table.setColumnCount(7)
+            self.users_table.setHorizontalHeaderLabels([
+                "ID", "Фамилия", "Имя", "Отчество", "Должность", "Дата приёма", "Дата рождения"
+            ])
         
         # Настройка таблицы
         self.users_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
