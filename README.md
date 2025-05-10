@@ -47,6 +47,30 @@ python main.py
 ├── requirements.txt           # Зависимости
 └── main.py                    # Точка входа
 ```
+## 🏗 Архитектурная схема
+
+```plaintext
+┌──────────────────────┐       ┌───────────────────┐
+│       UI Layer       │       │   Core Services   │
+│ (PyQt6 Widgets)      │◄─────►│                   │
+│ - MainWindow         │       │ - FaceRecognizer  │
+│ - Registration       │       │ - DatabaseManager │
+│ - Export             │       │ - PathsManager    │
+└──────────▲───────────┘       └────────▲──────────┘
+           │                            │
+           │                      ┌─────▼─────┐
+           │                      │  Data     │
+           │                      │  Storage  │
+           │                      │ - SQLite  │
+           │                      │ - Images  │
+           │                      └───────────┘
+           │
+┌──────────┴───────────┐
+│   Configuration      │
+│ - settings.ini       │
+│ - style.qss          │
+└──────────────────────┘
+```
 🛠 Ключевые компоненты
 База данных (app/core/database.py)
 
@@ -57,9 +81,66 @@ python main.py
         CRUD операции для пользователей и посещений
 
         Каскадное удаление данных
+        
+1. Модели данных
+Таблица users (Educational)
+```sql
 
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    lastname TEXT NOT NULL,
+    firstname TEXT NOT NULL,
+    patronymic TEXT,
+    faculty TEXT,
+    group_name TEXT
+)
+```
+Таблица users (Enterprise)
+```sql
+CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    lastname TEXT COLLATE NOCASE NOT NULL,
+                    firstname TEXT COLLATE NOCASE NOT NULL,
+                    patronymic TEXT COLLATE NOCASE,
+                    position TEXT,
+                    hire_date DATE,
+                    birth_date DATE
+                )
+```
+Таблица attendance
+```sql
+
+CREATE TABLE IF NOT EXISTS attendance (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    timestamp TEXT NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+)
+```
+
+2. Сервисный слой
+
+|Сервис	         | Ответственность                    | Методы                               |
+| -------------- | ---------------------------------- | ------------------------------------ |
+|DatabaseManage  | Управление SQLite-базами	          |  add_user(), get_attendance()        |
+|FaceRecognizer	 | Распознавание лиц через InsightFace|	process_frame(), register_new_user() |
+|PathsManager	 | Управление файловой структурой	  |  verify_paths()                      |
+|SettingsManager | Работа с INI-конфигами	          |  load_settings(), update_setting()   |
+
+
+Face Recognition Widget (core/face_recognition.py)
+```python
+
+class FaceRecognizer:
+    def process_frame(self, frame: np.ndarray) -> Tuple[np.ndarray, list]:
+        """Обработка кадра с аннотациями"""
+        faces = self.model.get(frame)
+        for face in faces[:self.max_faces]:
+            bbox = face.bbox.astype(int)
+            similarity, user_id = self._recognize_face(face.embedding)
+            self._draw_annotation(frame, bbox, similarity, user_id)
 Распознавание лиц (app/core/face_recognition.py)
-
+```
     FaceRecognizer:
 
         Реализация модели InsightFace
@@ -92,8 +173,10 @@ python main.py
     Нажмите "Зарегистрировать"
 
     Дождитесь захвата 10 образцов лица
-
 Регистрация
+![registration](https://github.com/user-attachments/assets/97cc6beb-6b48-48b1-96e7-712f82f6db0b)
+Распознавание
+![recognition](https://github.com/user-attachments/assets/d057bf5f-ebcf-4e95-96da-6e97a29dffd3)
 ⚙️ Настройки
 
 Файл app/settings/settings.ini:
@@ -101,12 +184,31 @@ ini
 
 [Settings]
 max_faces = 5
+
 institution = Educational
 
 ❗ Обработка ошибок
+Типовые сценарии
 
-    Камера недоступна → Красное уведомление в GUI
+    Ошибка камеры
 
-    Ошибки БД → Логирование в консоль
+```python
 
-    Недопустимые даты → Валидация ввода
+if not cap.isOpened():
+    QMessageBox.critical("Камера недоступна!")
+```
+    Ошибка БД
+
+```python
+
+except sqlite3.Error as e:
+    print(f"SQL Error: {e}")
+    self.conn.rollback()
+```
+    Ошибка распознавания
+
+```python
+
+if not self.known_embeddings:
+    QMessageBox.warning("Нет зарегистрированных пользователей!")
+```
