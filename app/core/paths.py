@@ -15,13 +15,15 @@ except Exception as e:
 
 # Основные директории
 DATA_DIR = ROOT_DIR / "app" / "data"
-MODELS_DIR = DATA_DIR / "models"
 
 # Пути к данным
 DB_DIR = DATA_DIR / "db"
 ATTENDANCE_REPORTS_DIR = DATA_DIR / "reports"
 FACES_DATA_DIR = DATA_DIR / "faces"
-FACES_IMG_DIR = FACES_DATA_DIR / "images"
+FACES_DATA_DIR_EDUCATIONAL = FACES_DATA_DIR / "educational"
+FACES_DATA_DIR_ENTERPRISE = FACES_DATA_DIR / "enterprise"
+FACES_IMG_DIR_EDUCATIONAL = FACES_DATA_DIR_EDUCATIONAL / "images"
+FACES_IMG_DIR_ENTERPRISE = FACES_DATA_DIR_ENTERPRISE / "images"
 
 # Базы данных
 DB_EDUCATIONAL = DB_DIR / "educational.db"
@@ -39,8 +41,8 @@ def verify_paths():
     required_dirs = [
         DB_DIR,
         ATTENDANCE_REPORTS_DIR,
-        FACES_IMG_DIR,
-        MODELS_DIR
+        FACES_IMG_DIR_EDUCATIONAL,
+        FACES_IMG_DIR_ENTERPRISE
     ]
     
     # Создание директорий

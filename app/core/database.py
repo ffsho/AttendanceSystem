@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Tuple
 from pathlib import Path
 import pytz
-from .paths import DB_EDUCATIONAL, DB_ENTERPRISE, FACES_IMG_DIR
+from .paths import DB_EDUCATIONAL, DB_ENTERPRISE, FACES_IMG_DIR_EDUCATIONAL, FACES_IMG_DIR_ENTERPRISE
 
 TIMEZONE = pytz.timezone('Asia/Yekaterinburg')
 
@@ -524,7 +524,11 @@ class DatabaseManager:
             self.conn.commit()
 
             if self.cursor.rowcount > 0:
-                user_folder = FACES_IMG_DIR / str(user_id)
+                
+                if self.institution_type == 'Educational':
+                    user_folder = FACES_IMG_DIR_EDUCATIONAL / str(user_id)
+                elif self.institution_type == 'Enterprise':
+                    user_folder = FACES_IMG_DIR_ENTERPRISE / str(user_id)
 
                 if user_folder.exists():
                     shutil.rmtree(user_folder)

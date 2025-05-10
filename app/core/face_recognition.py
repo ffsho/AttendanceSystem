@@ -5,7 +5,7 @@ from pathlib import Path
 from datetime import datetime
 from typing import List, Tuple, Optional
 from insightface.app import FaceAnalysis
-from .paths import FACES_IMG_DIR
+from .paths import FACES_IMG_DIR_ENTERPRISE, FACES_IMG_DIR_EDUCATIONAL
 from .database import DatabaseManager
 from ..settings.settings import SettingsManager
 
@@ -26,6 +26,7 @@ class FaceRecognizer:
         self.DET_SIZE = (320, 320)
         self.REC_THRESHOLD = 0.5
         self.max_faces = int(self.settings_manager.get_setting('max_faces'))
+        self.institution_type = self.settings_manager.get_setting('institution')
         self.FRAME_SKIP = 1
         
         self.db = db
@@ -63,7 +64,11 @@ class FaceRecognizer:
 
         for user in users:
             user_id = user[0]
-            user_folder = FACES_IMG_DIR / str(user_id)
+            
+            if self.institution_type == 'Educational':
+                user_folder = FACES_IMG_DIR_EDUCATIONAL / str(user_id)
+            elif self.institution_type == 'Enterprise':
+                user_folder = FACES_IMG_DIR_ENTERPRISE / str(user_id)
 
             if not user_folder.exists():
                 print(f"Папка {user_folder} не существует!")
@@ -117,6 +122,7 @@ class FaceRecognizer:
             return "Неизвестный"
         
         return full_name
+
 
     def process_frame(self, frame: np.ndarray) -> Tuple[np.ndarray, list]:
         """
@@ -210,7 +216,11 @@ class FaceRecognizer:
             False - ошибка регистрации
         """
 
-        user_folder = FACES_IMG_DIR / str(user_id)
+        if self.institution_type == 'Educational':
+            user_folder = FACES_IMG_DIR_EDUCATIONAL / str(user_id)
+        elif self.institution_type == 'Enterprise':
+            user_folder = FACES_IMG_DIR_ENTERPRISE / str(user_id)
+
         user_folder.mkdir(parents=True, exist_ok=True)
 
         cap = cv2.VideoCapture(0)
