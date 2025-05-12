@@ -21,8 +21,8 @@
 
 ### Установка
 ```bash
-git clone https://github.com/yourusername/face-attendance-system.git
-cd face-attendance-system
+git clone https://github.com/ffsho/AttendanceSystem.git
+cd AttendanceSystem
 pip install -r requirements.txt
 ```
 Запуск
