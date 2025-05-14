@@ -1,8 +1,5 @@
 import cv2
 import numpy as np
-import os
-from pathlib import Path
-from datetime import datetime
 from typing import List, Tuple, Optional
 from insightface.app import FaceAnalysis
 from .paths import FACES_IMG_DIR_ENTERPRISE, FACES_IMG_DIR_EDUCATIONAL
@@ -21,7 +18,7 @@ class FaceRecognizer:
         self.settings_manager.load_settings()
 
         # Конфигурация
-        self.USE_GPU = False
+        self.USE_GPU = True if self.settings_manager.get_setting('execution_provider') == "GPU" else False
         self.MODEL_NAME = "buffalo_s"
         self.DET_SIZE = (320, 320)
         self.REC_THRESHOLD = 0.5

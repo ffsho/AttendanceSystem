@@ -2,7 +2,6 @@ import shutil
 import sqlite3
 from datetime import datetime
 from typing import List, Tuple
-from pathlib import Path
 import pytz
 from .paths import DB_EDUCATIONAL, DB_ENTERPRISE, FACES_IMG_DIR_EDUCATIONAL, FACES_IMG_DIR_ENTERPRISE
 

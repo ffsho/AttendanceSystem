@@ -32,10 +32,17 @@ class SettingsDialog(QDialog):
         layout.addWidget(QLabel("Количество одновременно распознаваемых лиц:"))
         layout.addWidget(self.faces_spin)
 
-
+        # Выбор учреждения
         self.institution = QComboBox()
         self.institution.addItems(["Educational", "Enterprise"])
+        layout.addWidget(QLabel("Тип учреждения:"))
         layout.addWidget(self.institution)
+
+        # Выбор на чем будет работать модель CPU/GPU
+        self.execution_provider = QComboBox()
+        self.execution_provider.addItems(["CPU", "GPU"])
+        layout.addWidget(QLabel("На чем будет запускаться модель?:"))
+        layout.addWidget(self.execution_provider)
 
         # Кнопки управления
         self.buttons = QDialogButtonBox(
@@ -51,16 +58,19 @@ class SettingsDialog(QDialog):
         """Загрузка текущих настроек"""
         self.faces_spin.setValue(int(self.settings_manager.get_setting('max_faces')))
         self.institution.setCurrentText(self.settings_manager.get_setting('institution'))
-
+        self.execution_provider.setCurrentText(self.settings_manager.get_setting('execution_provider'))
 
     def save_settings(self):
         """Сохранение настроек и отправка сигнала"""
         new_settings = {
             'max_faces': self.faces_spin.value(),
-            'institution' : self.institution.currentText()
+            'institution' : self.institution.currentText(),
+            'execution_provider' : self.execution_provider.currentText()
         }
+
         self.settings_manager.update_setting('max_faces', new_settings.get('max_faces'))
         self.settings_manager.update_setting('institution', new_settings.get('institution'))
+        self.settings_manager.update_setting('execution_provider', new_settings.get('execution_provider'))
         self.settings_manager.save_settings()
         self.settings_updated.emit(new_settings)
         self.accept()

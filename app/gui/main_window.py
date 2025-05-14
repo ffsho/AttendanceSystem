@@ -25,7 +25,7 @@ class MainWindow(QMainWindow):
     def __init__(self, settings_manager: SettingsManager):
         """
         Инициализация главного окна
-        :param db: Объект DatabaseManager для работы с базой данных
+        :param settings_manager: Объект SettingsManager для работы с конфигурационными файлами
         """
 
         super().__init__()

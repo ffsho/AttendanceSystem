@@ -1,6 +1,5 @@
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtGui import QFontDatabase, QFont
-from app.core.database import DatabaseManager
 from app.gui.main_window import MainWindow
 import sys
 from app.core.paths import STYLES_DIR

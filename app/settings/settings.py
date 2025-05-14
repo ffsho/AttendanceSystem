@@ -49,4 +49,5 @@ class SettingsManager:
                     self.config.add_section('Settings')
                     self.config.set('Settings', 'max_faces', '10')
                     self.config.set('Settings', 'institution', 'Educational')
+                    self.config.set('Settings', 'execution_provider', 'CPU')
                     self.config.write(file)
