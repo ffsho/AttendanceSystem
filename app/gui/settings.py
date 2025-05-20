@@ -44,6 +44,12 @@ class SettingsDialog(QDialog):
         layout.addWidget(QLabel("На чем будет запускаться модель?:"))
         layout.addWidget(self.execution_provider)
 
+        # Выбор модели
+        self.model = QComboBox()
+        self.model.addItems(["buffalo_s", "buffalo_l"])
+        layout.addWidget(QLabel("Выберите подходящую модель для распознавания"))
+        layout.addWidget(self.model)
+
         # Кнопки управления
         self.buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save | 
@@ -59,18 +65,21 @@ class SettingsDialog(QDialog):
         self.faces_spin.setValue(int(self.settings_manager.get_setting('max_faces')))
         self.institution.setCurrentText(self.settings_manager.get_setting('institution'))
         self.execution_provider.setCurrentText(self.settings_manager.get_setting('execution_provider'))
+        self.model.setCurrentText(self.settings_manager.get_setting('model'))
 
     def save_settings(self):
         """Сохранение настроек и отправка сигнала"""
         new_settings = {
             'max_faces': self.faces_spin.value(),
             'institution' : self.institution.currentText(),
-            'execution_provider' : self.execution_provider.currentText()
+            'execution_provider' : self.execution_provider.currentText(),
+            'model' : self.model.currentText()
         }
 
         self.settings_manager.update_setting('max_faces', new_settings.get('max_faces'))
         self.settings_manager.update_setting('institution', new_settings.get('institution'))
         self.settings_manager.update_setting('execution_provider', new_settings.get('execution_provider'))
+        self.settings_manager.update_setting('model', new_settings.get('model'))
         self.settings_manager.save_settings()
         self.settings_updated.emit(new_settings)
         self.accept()

@@ -271,11 +271,6 @@ class MainWindow(QMainWindow):
         self.face_recognizer.load_known_faces()
 
 
-    def restart_application(self):
-        """Полный перезапуск приложения"""
-        QApplication.instance().exit(EXIT_CODE_REBOOT)
-
-
     def closeEvent(self, event):
         """Обработчик закрытия окна"""
         if self.cap.isOpened():

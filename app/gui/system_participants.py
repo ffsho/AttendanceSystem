@@ -114,7 +114,6 @@ class SystemParticipantsWidget(QWidget):
             if reply == QMessageBox.StandardButton.Yes:
                 if self.db.delete_user(user_id):
                     self.load_users()
-                    
                     QMessageBox.information(self, "Успех", "Пользователь успешно удален!")
                 else:
                     QMessageBox.critical(self, "Ошибка", "Не удалось удалить пользователя!")

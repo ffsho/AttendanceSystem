@@ -50,4 +50,5 @@ class SettingsManager:
                     self.config.set('Settings', 'max_faces', '10')
                     self.config.set('Settings', 'institution', 'Educational')
                     self.config.set('Settings', 'execution_provider', 'CPU')
+                    self.config.set('Settings', 'model', 'buffalo_s')
                     self.config.write(file)

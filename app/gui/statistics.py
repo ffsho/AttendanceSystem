@@ -91,6 +91,7 @@ class StatisticsWidget(QWidget):
         """Поиск по дате"""
         date_input = self.search_input.text().strip()
         if not date_input:
+            self.load_last_30_days()
             return
             
         try:

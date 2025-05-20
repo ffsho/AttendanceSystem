@@ -19,7 +19,7 @@ class FaceRecognizer:
 
         # Конфигурация
         self.USE_GPU = True if self.settings_manager.get_setting('execution_provider') == "GPU" else False
-        self.MODEL_NAME = "buffalo_s"
+        self.MODEL_NAME = self.settings_manager.get_setting('model')
         self.DET_SIZE = (320, 320)
         self.REC_THRESHOLD = 0.5
         self.max_faces = int(self.settings_manager.get_setting('max_faces'))
